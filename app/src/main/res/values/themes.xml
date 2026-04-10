@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base theme required by the manifest. Compose replaces everything at runtime. -->
+    <style name="Theme.VineOS" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Window background matching our light surface color to prevent white flash -->
+        <item name="android:windowBackground">#FFF8F5EF</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <!-- Edge-to-edge -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+
+    <!-- Splash screen theme — shown before Compose is ready -->
+    <style name="Theme.VineOS.Splash" parent="Theme.VineOS">
+        <!-- android:windowSplashScreenBackground requires API 31+ so this is the
+             pre-31 approach. For API 31+ use the SplashScreen compat library. -->
+        <item name="android:windowBackground">#FF1A1C19</item>
+    </style>
+</resources>
