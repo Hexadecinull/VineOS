@@ -1,5 +1,134 @@
-# Ignore Gradle project-specific cache directory
-.gradle
+# ============================================================
+#  VineOS .gitignore
+#  Android + NDK (C/C++) + Gradle + IDE files
+# ============================================================
 
-# Ignore Gradle build output directory
-build
+# ── Gradle ───────────────────────────────────────────────────────────────────
+.gradle/
+build/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Gradle wrapper — keep the jar and properties, ignore the binary
+gradle/wrapper/gradle-wrapper.jar
+# ^ Un-comment the above if you prefer not to commit the jar.
+#   Committing it is fine and avoids bootstrap issues on CI.
+
+# ── Android ──────────────────────────────────────────────────────────────────
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Log files
+*.log
+/app/src/main/res/raw/
+local.properties
+captures/
+
+# Room schema exports (generated; tracked separately if desired)
+# Comment out the next line if you DO want to commit schemas
+# app/schemas/
+
+# ── NDK / CMake / C++ ────────────────────────────────────────────────────────
+.cxx/
+*.so
+*.o
+*.a
+*.d
+*.ninja
+*.ninja_deps
+*.ninja_log
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+_deps/
+
+# Compiled qemu-arm binary (large binary; distribute via releases, not git)
+app/src/main/jniLibs/
+
+# ── IntelliJ IDEA / Android Studio ───────────────────────────────────────────
+*.iml
+*.ipr
+*.iws
+.idea/
+!.idea/codeStyles/
+!.idea/inspectionProfiles/
+# Keep run configurations if you want to share them:
+# !.idea/runConfigurations/
+
+# ── VS Code ───────────────────────────────────────────────────────────────────
+.vscode/
+*.code-workspace
+
+# ── macOS ────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# ── Linux ────────────────────────────────────────────────────────────────────
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ── Windows ──────────────────────────────────────────────────────────────────
+Thumbs.db
+Thumbs.db:encdata
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# ── Keys / Secrets ───────────────────────────────────────────────────────────
+# NEVER commit signing keys or secrets to git.
+*.jks
+*.keystore
+keystore.properties
+google-services.json
+*.p12
+*.pfx
+
+# ── ROM images / VM data ─────────────────────────────────────────────────────
+# These are large binary files distributed via releases or CDN, not git.
+*.vrom
+*.img
+*.iso
+*.qcow2
+*.raw
+
+# ── Test outputs ─────────────────────────────────────────────────────────────
+test-results/
+lint-results/
+reports/
+
+# ── Proguard ─────────────────────────────────────────────────────────────────
+proguard/
+/app/proguard-rules.pro
+# ^ Remove the above line if you want to track your custom rules
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+*.swp
+*.swo
+*.bak
+*.tmp
+*.orig
+nbproject/
+nbandroid/

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  backup_rules.xml
+  Controls what gets backed up via Android Auto Backup (API 23+).
+  VM instance data and ROM images are excluded — they're large and
+  device-specific. User preferences are backed up.
+-->
+<full-backup-content>
+    <!-- Back up user preferences -->
+    <include domain="sharedpref" path="." />
+
+    <!-- Exclude the Room database (instances are recreated by the user) -->
+    <exclude domain="database" path="vineos.db" />
+    <exclude domain="database" path="vineos.db-shm" />
+    <exclude domain="database" path="vineos.db-wal" />
+
+    <!-- Exclude VM instance data (large, device-specific) -->
+    <exclude domain="file" path="instances/" />
+
+    <!-- Exclude downloaded ROM images (re-downloadable) -->
+    <exclude domain="file" path="roms/" />
+</full-backup-content>

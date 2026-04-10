@@ -1,6 +1,7 @@
 package com.hexadecinull.vineos
 
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -10,17 +11,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.hexadecinull.vineos.data.models.*
 import com.hexadecinull.vineos.ui.navigation.Screen
 import com.hexadecinull.vineos.ui.navigation.bottomNavItems
 import com.hexadecinull.vineos.ui.screens.*
 import com.hexadecinull.vineos.ui.theme.VineOSTheme
+import com.hexadecinull.vineos.ui.viewmodel.HomeViewModel
+import com.hexadecinull.vineos.ui.viewmodel.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -28,23 +33,31 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Enable edge-to-edge display — content draws behind system bars.
-        // Theme.kt's SideEffect handles status/nav bar color.
         enableEdgeToEdge()
         setContent {
-            // TODO: inject settings from DataStore via ViewModel
-            var settings by remember { mutableStateOf(AppSettings()) }
+            val settingsVm: SettingsViewModel = hiltViewModel()
+            val settings by settingsVm.settings.collectAsStateWithLifecycle()
+
+            // Honour the "keep screen on while VM is running" preference
+            LaunchedEffect(settings.keepScreenOn) {
+                if (settings.keepScreenOn) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+            }
+
             VineOSTheme(dynamicColor = settings.dynamicColor) {
                 VineOSApp(
                     settings = settings,
-                    onSettingsChange = { settings = it }
+                    onSettingsChange = { settingsVm.update(it) },
                 )
             }
         }
     }
 }
 
-// ─── App Shell ────────────────────────────────────────────────────────────────
+// ─── App shell ────────────────────────────────────────────────────────────────
 
 @Composable
 fun VineOSApp(
@@ -53,130 +66,103 @@ fun VineOSApp(
 ) {
     val navController = rememberNavController()
 
-    // Placeholder state — will be replaced by ViewModel / Repository in next phase
-    val instances = remember { mutableStateListOf<VMInstance>() }
-    val roms = remember { mutableStateListOf<ROMImage>() }
-    val downloadProgress = remember { mutableStateMapOf<String, DownloadProgress>() }
-
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        bottomBar = {
-            VineBottomNavBar(
-                navController = navController,
-            )
-        }
+        bottomBar = { VineBottomNavBar(navController) },
     ) { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding),
-            enterTransition = { fadeIn() + slideInHorizontally() },
-            exitTransition = { fadeOut() },
-            popEnterTransition = { fadeIn() },
-            popExitTransition = { fadeOut() + slideOutHorizontally() },
+            enterTransition  = { fadeIn() + slideInHorizontally { it / 8 } },
+            exitTransition   = { fadeOut() },
+            popEnterTransition  = { fadeIn() },
+            popExitTransition   = { fadeOut() + slideOutHorizontally { it / 8 } },
         ) {
-            // ── Bottom nav destinations ──────────────────────────────────────
+            // ── Home ─────────────────────────────────────────────────────────
             composable(Screen.Home.route) {
+                val vm: HomeViewModel = hiltViewModel()
+                val uiState by vm.uiState.collectAsStateWithLifecycle()
+
                 HomeScreen(
-                    instances = instances,
-                    onLaunchInstance = { /* TODO: VineVMManager.start(it) */ },
-                    onStopInstance = { /* TODO: VineVMManager.stop(it) */ },
+                    instances        = uiState.instances,
+                    onLaunchInstance = vm::launchInstance,
+                    onStopInstance   = vm::stopInstance,
                     onInstanceDetail = { navController.navigate(Screen.InstanceDetail.createRoute(it.id)) },
-                    onDeleteInstance = { instances.remove(it) },
+                    onDeleteInstance = vm::deleteInstance,
                     onCreateInstance = { navController.navigate(Screen.ROMs.route) },
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
 
+            // ── ROMs ─────────────────────────────────────────────────────────
             composable(Screen.ROMs.route) {
+                // ROMsViewModel — Phase 3
                 ROMsScreen(
-                    roms = roms,
-                    downloadProgress = downloadProgress,
-                    onDownloadROM = { /* TODO: ROMRepository.download(it) */ },
-                    onDeleteROM = { /* TODO: ROMRepository.delete(it) */ },
-                    onROMDetail = { navController.navigate(Screen.ROMDetail.createRoute(it.id)) },
-                    isLoading = false,
-                    modifier = Modifier.fillMaxSize()
+                    roms             = emptyList(),
+                    downloadProgress = emptyMap(),
+                    onDownloadROM    = {},
+                    onDeleteROM      = {},
+                    onROMDetail      = { navController.navigate(Screen.ROMDetail.createRoute(it.id)) },
+                    isLoading        = false,
+                    modifier         = Modifier.fillMaxSize(),
                 )
             }
 
+            // ── Settings ─────────────────────────────────────────────────────
             composable(Screen.Settings.route) {
                 SettingsScreen(
-                    settings = settings,
+                    settings         = settings,
                     onSettingsChange = onSettingsChange,
-                    modifier = Modifier.fillMaxSize()
+                    modifier         = Modifier.fillMaxSize(),
                 )
             }
 
-            // ── Detail destinations ──────────────────────────────────────────
-            composable(Screen.InstanceDetail.route) { backStackEntry ->
-                val instanceId = backStackEntry.arguments?.getString("instanceId") ?: return@composable
-                // TODO: InstanceDetailScreen(instanceId = instanceId, ...)
-                // Placeholder
+            // ── Detail destinations (Phase 2) ─────────────────────────────
+            composable(Screen.InstanceDetail.route) { back ->
+                val id = back.arguments?.getString("instanceId") ?: return@composable
                 Surface(Modifier.fillMaxSize()) {
-                    Text("Instance Detail: $instanceId", modifier = Modifier.padding(
-                        androidx.compose.foundation.layout.PaddingValues(16.dp)
-                    ))
+                    Text("Instance Detail — $id", modifier = Modifier.padding(16.dp))
                 }
             }
-
-            composable(Screen.ROMDetail.route) { backStackEntry ->
-                val romId = backStackEntry.arguments?.getString("romId") ?: return@composable
-                // TODO: ROMDetailScreen(romId = romId, ...)
-                Surface(Modifier.fillMaxSize()) {
-                    Text("ROM Detail: $romId")
-                }
+            composable(Screen.ROMDetail.route) { back ->
+                val id = back.arguments?.getString("romId") ?: return@composable
+                Surface(Modifier.fillMaxSize()) { Text("ROM Detail — $id") }
             }
-
-            composable(Screen.VMDisplay.route) { backStackEntry ->
-                val instanceId = backStackEntry.arguments?.getString("instanceId") ?: return@composable
-                // TODO: VMDisplayScreen — the main VM framebuffer view
-                Surface(Modifier.fillMaxSize()) {
-                    Text("VM Display: $instanceId")
-                }
+            composable(Screen.VMDisplay.route) { back ->
+                val id = back.arguments?.getString("instanceId") ?: return@composable
+                Surface(Modifier.fillMaxSize()) { Text("VM Display — $id") }
             }
         }
     }
 }
 
-// ─── Bottom Navigation Bar ────────────────────────────────────────────────────
+// ─── Bottom navigation bar ────────────────────────────────────────────────────
 
 @Composable
 private fun VineBottomNavBar(navController: androidx.navigation.NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
+    val current = navBackStackEntry?.destination
 
-    // Only show bottom nav on top-level destinations
-    val showBottomBar = bottomNavItems.any { item ->
-        currentDestination?.hierarchy?.any { it.route == item.screen.route } == true
+    val showBar = bottomNavItems.any { item ->
+        current?.hierarchy?.any { it.route == item.screen.route } == true
     }
-
-    if (!showBottomBar) return
+    if (!showBar) return
 
     NavigationBar {
         bottomNavItems.forEach { item ->
-            val selected = currentDestination?.hierarchy?.any {
-                it.route == item.screen.route
-            } == true
-
+            val selected = current?.hierarchy?.any { it.route == item.screen.route } == true
             NavigationBarItem(
-                icon = {
-                    Icon(
-                        imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
-                        contentDescription = item.label
-                    )
-                },
-                label = { Text(item.label) },
+                icon     = { Icon(if (selected) item.selectedIcon else item.unselectedIcon, item.label) },
+                label    = { Text(item.label) },
                 selected = selected,
-                onClick = {
+                onClick  = {
                     navController.navigate(item.screen.route) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                         launchSingleTop = true
-                        restoreState = true
+                        restoreState    = true
                     }
-                }
+                },
             )
         }
     }

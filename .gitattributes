@@ -1,12 +1,125 @@
-#
-# https://help.github.com/articles/dealing-with-line-endings/
-#
-# Linux start script should use lf
-/gradlew        text eol=lf
+# ============================================================
+#  VineOS .gitattributes
+#  Ensures consistent line endings, binary handling, and
+#  correct GitHub language detection across platforms.
+# ============================================================
 
-# These are Windows script files and should use crlf
-*.bat           text eol=crlf
+# ── Default: normalize all text files to LF on checkout ──────────────────────
+* text=auto eol=lf
 
-# Binary files should be left untouched
-*.jar           binary
+# ── Explicitly text files (force LF) ─────────────────────────────────────────
+*.kt          text eol=lf
+*.kts         text eol=lf
+*.java        text eol=lf
+*.cpp         text eol=lf
+*.cc          text eol=lf
+*.cxx         text eol=lf
+*.c           text eol=lf
+*.h           text eol=lf
+*.hpp         text eol=lf
+*.hxx         text eol=lf
+*.xml         text eol=lf
+*.json        text eol=lf
+*.toml        text eol=lf
+*.properties  text eol=lf
+*.pro         text eol=lf
+*.md          text eol=lf
+*.txt         text eol=lf
+*.yml         text eol=lf
+*.yaml        text eol=lf
+*.sh          text eol=lf
+*.bash        text eol=lf
+*.py          text eol=lf
+*.rb          text eol=lf
+*.cmake       text eol=lf
+CMakeLists.txt text eol=lf
+Makefile      text eol=lf
+*.mk          text eol=lf
+*.gradle      text eol=lf
+*.gitignore   text eol=lf
+*.gitattributes text eol=lf
+LICENCE       text eol=lf
+LICENSE       text eol=lf
 
+# Windows shell scripts — keep CRLF on Windows checkouts
+*.bat         text eol=crlf
+*.cmd         text eol=crlf
+*.ps1         text eol=crlf
+
+# ── Binary files (never diff, never merge, never convert) ─────────────────────
+*.png         binary
+*.jpg         binary
+*.jpeg        binary
+*.gif         binary
+*.ico         binary
+*.webp        binary
+*.bmp         binary
+*.tiff        binary
+
+*.apk         binary
+*.aab         binary
+*.jar         binary
+*.aar         binary
+*.class       binary
+*.dex         binary
+
+*.so          binary
+*.o           binary
+*.a           binary
+*.lib         binary
+*.dll         binary
+*.exe         binary
+*.dylib       binary
+
+# Gradle wrapper jar
+gradle/wrapper/gradle-wrapper.jar binary
+
+# ROM / VM disk images
+*.vrom        binary
+*.img         binary
+*.iso         binary
+*.qcow2       binary
+*.raw         binary
+
+# Fonts
+*.ttf         binary
+*.otf         binary
+*.woff        binary
+*.woff2       binary
+
+# Archives
+*.zip         binary
+*.tar         binary
+*.gz          binary
+*.bz2         binary
+*.xz          binary
+*.7z          binary
+
+# Keystores
+*.jks         binary
+*.keystore    binary
+*.p12         binary
+
+# ── GitHub Linguist overrides ─────────────────────────────────────────────────
+# Tell GitHub what language this project is, and prevent vendored/generated
+# files from inflating the language stats.
+
+# Mark generated files (Room schemas, build outputs) as generated
+app/schemas/**          linguist-generated=true
+
+# Gradle wrapper is vendored, not our code
+gradle/wrapper/**       linguist-vendored=true
+gradlew                 linguist-vendored=true
+gradlew.bat             linguist-vendored=true
+
+# The NDK C++ is a first-class part of the project — make sure it's counted
+app/src/main/cpp/**     linguist-detectable=true
+
+# Markdown docs aren't "code" for language percentage purposes
+*.md                    linguist-documentation=true
+docs/**                 linguist-documentation=true
+
+# ── Diff drivers ─────────────────────────────────────────────────────────────
+# Use a more useful diff for XML (Android resource files)
+*.xml  diff=xml
+*.json diff=json

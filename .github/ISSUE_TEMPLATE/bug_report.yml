@@ -1,0 +1,109 @@
+name: Bug report
+description: Report a bug or unexpected behavior in VineOS
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill in as much detail as possible — it helps us fix issues faster.
+        
+        **For security vulnerabilities**, please do NOT open a public issue. See [CONTRIBUTING.md](../CONTRIBUTING.md#security-vulnerabilities) instead.
+
+  - type: input
+    id: vineos-version
+    attributes:
+      label: VineOS version
+      description: Found in Settings → About → Version
+      placeholder: "e.g. 0.1.0-alpha"
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device model
+      placeholder: "e.g. POCO X7 Pro, Pixel 8 Pro, Samsung Galaxy S24"
+    validations:
+      required: true
+
+  - type: input
+    id: android-version
+    attributes:
+      label: Host Android version
+      placeholder: "e.g. Android 15 (API 35)"
+    validations:
+      required: true
+
+  - type: input
+    id: abi-list
+    attributes:
+      label: Host CPU ABI list
+      description: |
+        Found in VineOS Settings → About → Host ABI.
+        Or run: `adb shell getprop ro.product.cpu.abilist`
+      placeholder: "e.g. arm64-v8a  OR  arm64-v8a,armeabi-v7a,armeabi"
+    validations:
+      required: true
+
+  - type: input
+    id: rom-version
+    attributes:
+      label: ROM version (if applicable)
+      description: The guest ROM that was running when the bug occurred
+      placeholder: "e.g. vine-rom-7 (Android 7.1.2)"
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug description
+      description: A clear description of what went wrong
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open VineOS
+        2. Tap 'New Instance'
+        3. Select ROM...
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: logcat
+    attributes:
+      label: Logcat output
+      description: |
+        Run this command while reproducing the issue and paste the output:
+        ```
+        adb logcat -s VineRuntime:V AndroidRuntime:E *:F
+        ```
+      render: text
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Screenshots, screen recordings, or any other relevant information

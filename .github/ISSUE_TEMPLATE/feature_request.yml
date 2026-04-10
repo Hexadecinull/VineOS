@@ -1,0 +1,61 @@
+name: Feature request
+description: Suggest a new feature or improvement for VineOS
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening a feature request, please check the [Roadmap](../README.md#roadmap) and [existing issues](https://github.com/Hexadecinull/VineOS/issues?q=is%3Aissue+label%3Aenhancement) to avoid duplicates.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What problem does this feature solve? What's the use case?
+      placeholder: "I want to be able to... because..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How do you envision this feature working?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds or alternative approaches you've considered?
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of VineOS does this affect?
+      options:
+        - UI / Design
+        - VM container runtime (C++ native)
+        - 32-bit / QEMU support
+        - ROM images
+        - Display / input
+        - Networking
+        - Storage / snapshots
+        - Root / Magisk support
+        - Performance
+        - CI / build system
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Mockups, links, references to similar features in other projects, etc.
