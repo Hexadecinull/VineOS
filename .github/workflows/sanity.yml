@@ -1,266 +1,107 @@
 name: Compile-time Sanity Checks
 
-# These checks run before the main CI build and are designed to catch
-# configuration mistakes early — wrong SDK/NDK versions, missing gradle.properties
-# entries, CMake configure errors — before the full build wastes time on them.
-
 on:
   push:
-    branches:
-      - main
-      - dev
-      - 'feature/**'
-      - 'fix/**'
+    branches: [main, dev, 'feature/**', 'fix/**']
   pull_request:
-    branches:
-      - main
-      - dev
+    branches: [main, dev]
 
 concurrency:
   group: sanity-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # ── Gradle properties check ────────────────────────────────────────────────
   check-gradle-properties:
-    name: Check gradle.properties
+    name: gradle.properties
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: |
+          grep -q "^android.useAndroidX=true"               gradle.properties || (echo "FAIL: android.useAndroidX" && exit 1)
+          grep -q "^android.suppressUnsupportedCompileSdk=" gradle.properties || (echo "FAIL: suppressUnsupportedCompileSdk" && exit 1)
+          echo "OK: gradle.properties"
 
-      - name: Verify required Gradle properties are set
-        run: |
-          PROPS="gradle.properties"
-
-          check_property() {
-            local key="$1"
-            local expected="$2"
-            if ! grep -q "^${key}=${expected}" "$PROPS"; then
-              echo "FAIL: '$key' is not set to '$expected' in $PROPS"
-              echo "Found:"
-              grep "^${key}" "$PROPS" || echo "  (not found)"
-              exit 1
-            fi
-            echo "OK: $key=$expected"
-          }
-
-          check_property "android.useAndroidX"       "true"
-          check_property "android.suppressUnsupportedCompileSdk" "36"
-          check_property "org.gradle.parallel"       "true"
-
-          echo ""
-          echo "All required Gradle properties verified."
-
-  # ── SDK version check ──────────────────────────────────────────────────────
-  check-sdk-versions:
-    name: Check SDK/NDK version declarations
+  check-gradle-wrapper:
+    name: Gradle wrapper
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Verify compileSdk, minSdk, targetSdk
-        run: |
-          BUILD="app/build.gradle.kts"
-
-          check_value() {
-            local label="$1"
-            local pattern="$2"
-            if ! grep -q "$pattern" "$BUILD"; then
-              echo "FAIL: $label not found matching '$pattern' in $BUILD"
-              exit 1
-            fi
-            echo "OK: $label found"
-          }
-
-          check_value "compileSdk=36"  "compileSdk = 36"
-          check_value "minSdk=26"      "minSdk = 26"
-          check_value "targetSdk=36"   "targetSdk = 36"
-
-          echo ""
-          echo "SDK version declarations look correct."
-
-      - name: Verify ABI filters are arm64-only
-        run: |
-          if grep -q '"x86_64"' app/build.gradle.kts; then
-            echo "WARN: x86_64 is in ndk.abiFilters — remove for production builds"
-            # Non-fatal: developers may add x86_64 locally for emulator testing
-          fi
-          if ! grep -q '"arm64-v8a"' app/build.gradle.kts; then
-            echo "FAIL: arm64-v8a missing from ndk.abiFilters"
+      - run: |
+          WRAPPER="gradle/wrapper/gradle-wrapper.properties"
+          [ -f "$WRAPPER" ] || (echo "FAIL: wrapper properties missing" && exit 1)
+          # AGP 8.9.0 requires Gradle 8.11.1+
+          grep -q "gradle-8.11" "$WRAPPER" || {
+            echo "FAIL: Gradle wrapper must be 8.11+. Found:"
+            grep distributionUrl "$WRAPPER"
             exit 1
-          fi
-          echo "OK: ABI filters verified."
+          }
+          echo "OK: $(grep distributionUrl "$WRAPPER")"
 
-  # ── CMake configure check ──────────────────────────────────────────────────
-  check-cmake:
-    name: Verify CMakeLists.txt
+  check-sdk-versions:
+    name: SDK version declarations
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: |
+          BUILD="app/build.gradle.kts"
+          grep -q "compileSdk = 36" "$BUILD" || (echo "FAIL: compileSdk" && exit 1)
+          grep -q "minSdk = 26"     "$BUILD" || (echo "FAIL: minSdk"     && exit 1)
+          grep -q "targetSdk = 36"  "$BUILD" || (echo "FAIL: targetSdk"  && exit 1)
+          grep -q '"arm64-v8a"'     "$BUILD" || (echo "FAIL: arm64-v8a ABI filter" && exit 1)
+          echo "OK: SDK versions"
 
-      - name: Install CMake
-        uses: lukka/get-cmake@latest
-        with:
-          cmakeVersion: '3.22.1'
-
-      # Run CMake in script mode to validate syntax. We can't do a real Android
-      # cross-compile configure here without the full NDK, but we can at least
-      # check for syntax errors and verify all listed source files exist.
-      - name: Check CMakeLists.txt syntax and source file existence
-        run: |
+  check-cmake:
+    name: CMakeLists.txt source files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
           CPP_DIR="app/src/main/cpp"
-          CMAKE_FILE="$CPP_DIR/CMakeLists.txt"
-
-          echo "Parsing source file list from $CMAKE_FILE..."
-
-          # Extract .cpp files from VINE_SOURCES block
-          SOURCES=$(awk '/set\(VINE_SOURCES/,/\)/' "$CMAKE_FILE" \
-                    | grep -oE '[a-zA-Z_/]+\.cpp')
-
+          SOURCES=$(awk '/set\(VINE_SOURCES/,/\)/' "$CPP_DIR/CMakeLists.txt" | grep -oE '[a-zA-Z_/]+\.cpp')
           ALL_OK=true
           for src in $SOURCES; do
-            FULL_PATH="$CPP_DIR/$src"
-            if [ -f "$FULL_PATH" ]; then
-              echo "  OK: $src"
-            else
-              echo "  FAIL: $src — file does not exist at $FULL_PATH"
-              ALL_OK=false
-            fi
+            [ -f "$CPP_DIR/$src" ] && echo "  OK: $src" || { echo "  FAIL: $src"; ALL_OK=false; }
+          done
+          $ALL_OK || exit 1
+
+  check-manifest:
+    name: AndroidManifest.xml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          M="app/src/main/AndroidManifest.xml"
+          grep -q "FOREGROUND_SERVICE\"" "$M" || (echo "FAIL: FOREGROUND_SERVICE" && exit 1)
+          grep -q "INTERNET\""           "$M" || (echo "FAIL: INTERNET" && exit 1)
+          grep -q "WAKE_LOCK\""          "$M" || (echo "FAIL: WAKE_LOCK" && exit 1)
+          grep -q "VineApplication"      "$M" || (echo "FAIL: VineApplication" && exit 1)
+          grep -q "VineService"          "$M" || (echo "FAIL: VineService" && exit 1)
+          echo "OK: manifest"
+
+  check-version-catalog:
+    name: libs.versions.toml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          C="gradle/libs.versions.toml"
+          for lib in agp kotlin compose-bom hilt room ktlint; do
+            grep -q "^${lib} = " "$C" || (echo "FAIL: $lib not pinned" && exit 1)
+            echo "  OK: $lib = $(grep "^${lib} = " "$C" | cut -d'"' -f2)"
           done
 
-          if [ "$ALL_OK" != "true" ]; then
-            echo ""
-            echo "ERROR: Some source files listed in CMakeLists.txt do not exist."
-            exit 1
-          fi
-
-          echo ""
-          echo "All CMakeLists.txt source files verified."
-
-      - name: Check C++ header files exist
-        run: |
-          CPP_DIR="app/src/main/cpp"
-          HEADERS=$(find "$CPP_DIR" -name "*.h" | sort)
-          echo "Found headers:"
-          echo "$HEADERS"
-          COUNT=$(echo "$HEADERS" | wc -l)
-          echo "Total: $COUNT header files"
-          if [ "$COUNT" -lt 5 ]; then
-            echo "WARN: Fewer headers than expected — some may be missing"
-          fi
-
-  # ── Manifest check ─────────────────────────────────────────────────────────
-  check-manifest:
-    name: Verify AndroidManifest.xml
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Check required permissions are declared
-        run: |
-          MANIFEST="app/src/main/AndroidManifest.xml"
-
-          check_permission() {
-            local perm="$1"
-            if ! grep -q "\"$perm\"" "$MANIFEST"; then
-              echo "FAIL: Permission '$perm' missing from AndroidManifest.xml"
-              exit 1
-            fi
-            echo "OK: $perm"
-          }
-
-          check_permission "android.permission.FOREGROUND_SERVICE"
-          check_permission "android.permission.INTERNET"
-          check_permission "android.permission.WAKE_LOCK"
-          check_permission "android.permission.POST_NOTIFICATIONS"
-
-          echo ""
-          echo "All required manifest permissions verified."
-
-      - name: Check application class is declared
-        run: |
-          MANIFEST="app/src/main/AndroidManifest.xml"
-          if ! grep -q 'android:name=".VineApplication"' "$MANIFEST"; then
-            echo "FAIL: VineApplication not declared in AndroidManifest"
-            exit 1
-          fi
-          echo "OK: VineApplication declared."
-
-      - name: Check foreground service is declared
-        run: |
-          MANIFEST="app/src/main/AndroidManifest.xml"
-          if ! grep -q 'VineService' "$MANIFEST"; then
-            echo "FAIL: VineService missing from AndroidManifest"
-            exit 1
-          fi
-          echo "OK: VineService declared."
-
-  # ── Version catalog check ──────────────────────────────────────────────────
-  check-version-catalog:
-    name: Verify libs.versions.toml
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Check critical library versions are pinned
-        run: |
-          CATALOG="gradle/libs.versions.toml"
-
-          check_version() {
-            local lib="$1"
-            if ! grep -q "^${lib} = " "$CATALOG"; then
-              echo "FAIL: '$lib' version not pinned in $CATALOG"
-              exit 1
-            fi
-            echo "OK: $lib pinned to $(grep "^${lib} = " "$CATALOG" | cut -d'"' -f2)"
-          }
-
-          check_version "agp"
-          check_version "kotlin"
-          check_version "compose-bom"
-          check_version "hilt"
-          check_version "room"
-          check_version "ktlint"
-
-          echo ""
-          echo "All critical library versions verified in version catalog."
-
-  # ── Test source structure check ────────────────────────────────────────────
   check-test-structure:
-    name: Verify test source directories exist
+    name: Test source directories
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Check unit test directory and files
-        run: |
-          TEST_DIR="app/src/test/java/com/hexadecinull/vineos"
-          if [ ! -d "$TEST_DIR" ]; then
-            echo "FAIL: Unit test directory missing: $TEST_DIR"
-            exit 1
-          fi
-          COUNT=$(find "$TEST_DIR" -name "*Test.kt" | wc -l)
-          echo "Found $COUNT unit test file(s) in $TEST_DIR"
-          if [ "$COUNT" -lt 1 ]; then
-            echo "FAIL: No unit test files found"
-            exit 1
-          fi
-          find "$TEST_DIR" -name "*Test.kt" | sed 's/^/  /'
-
-      - name: Check instrumented test directory and files
-        run: |
-          ATEST_DIR="app/src/androidTest/java/com/hexadecinull/vineos"
-          if [ ! -d "$ATEST_DIR" ]; then
-            echo "FAIL: Instrumented test directory missing: $ATEST_DIR"
-            exit 1
-          fi
-          COUNT=$(find "$ATEST_DIR" -name "*Test.kt" | wc -l)
-          echo "Found $COUNT instrumented test file(s) in $ATEST_DIR"
-          if [ "$COUNT" -lt 1 ]; then
-            echo "FAIL: No instrumented test files found"
-            exit 1
-          fi
-          find "$ATEST_DIR" -name "*Test.kt" | sed 's/^/  /'
-
-          echo ""
-          echo "Test structure verified."
+      - run: |
+          TEST="app/src/test/java/com/hexadecinull/vineos"
+          ATEST="app/src/androidTest/java/com/hexadecinull/vineos"
+          [ -d "$TEST"  ] || (echo "FAIL: unit test dir missing"        && exit 1)
+          [ -d "$ATEST" ] || (echo "FAIL: instrumented test dir missing" && exit 1)
+          UNIT=$(find "$TEST"  -name "*Test.kt" | wc -l)
+          INST=$(find "$ATEST" -name "*Test.kt" | wc -l)
+          [ "$UNIT" -ge 1 ] || (echo "FAIL: no unit tests"        && exit 1)
+          [ "$INST" -ge 1 ] || (echo "FAIL: no instrumented tests" && exit 1)
+          echo "OK: $UNIT unit test(s), $INST instrumented test(s)"

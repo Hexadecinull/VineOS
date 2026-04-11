@@ -17,8 +17,6 @@
 
 namespace vine {
 
-// ─── Filesystem helpers ───────────────────────────────────────────────────────
-
 bool mkdirs(const std::string& path, mode_t mode) {
     if (path.empty()) return false;
     if (path_exists(path)) return is_directory(path);
@@ -74,8 +72,6 @@ ssize_t file_size(const std::string& path) {
     return stat(path.c_str(), &st) == 0 ? (ssize_t)st.st_size : -1;
 }
 
-// ─── Process helpers ──────────────────────────────────────────────────────────
-
 static pid_t do_fork_exec(const std::vector<std::string>& args) {
     if (args.empty()) return -1;
     std::vector<const char*> argv;
@@ -116,141 +112,52 @@ bool terminate_gracefully(pid_t pid, int timeout_ms) {
         int st = 0;
         if (waitpid(pid, &st, WNOHANG) == pid) return true;
     }
-    VINE_LOGW("pid %d didn't exit in %dms, SIGKILL", pid, timeout_ms);
+    VINE_LOGW("pid %d didn't exit in %dms, sending SIGKILL", pid, timeout_ms);
     kill(pid, SIGKILL);
     waitpid(pid, nullptr, 0);
     return false;
 }
 
-// ─── AArch32 detection ────────────────────────────────────────────────────────
-//
-// RESEARCH NOTES — AArch32 on arm64-only SoCs
-// ============================================
-//
-// Background:
-//   ARMv8-A (AArch64) CPUs are optionally required to support the AArch32
-//   execution state. "arm64-only" devices have an ARMv8-A CPU that has the
-//   AArch32 exception level (EL0) permanently disabled in hardware via a
-//   CPU register bit (ID_AA64PFR0_EL1.EL0 == 0b0001 means 64-bit only;
-//   0b0010 means both 32 and 64-bit supported).
-//
-// Known arm64-only SoCs (as of 2025):
-//   - Google Tensor G3 (Pixel 8/8 Pro/8a, 2023) — first commercial Android SoC
-//     to drop AArch32 (confirmed via /proc/cpuinfo lacking aarch32_el0 and
-//     ro.product.cpu.abilist showing only arm64-v8a)
-//   - MediaTek Dimensity 8400-Ultra (POCO X7 Pro, Redmi K80 Pro) — likewise
-//   - MediaTek Dimensity 9300 (some variants) — AArch32 dropped
-//   - Apple M-series, Samsung Exynos 2500 — not Android-relevant but same situation
-//
-// Detection strategy (4-layer, most to least reliable):
-//
-//   Layer 1: ro.product.cpu.abilist32
-//     Android sets this property to the list of 32-bit ABIs the device supports.
-//     On arm64-only devices, it is an EMPTY STRING. This is the gold standard.
-//     Source: frameworks/base/core/jni/android_util_Process.cpp sets this from
-//     the kernel's reported ABI capabilities.
-//
-//   Layer 2: ro.product.cpu.abilist
-//     If "armeabi-v7a" or "armeabi" appears here, the device supports 32-bit.
-//     On arm64-only devices, only "arm64-v8a" appears.
-//
-//   Layer 3: /proc/sys/abi/ directory
-//     The Linux kernel, when compiled with CONFIG_COMPAT (32-bit compat layer),
-//     exposes emulation control knobs under /proc/sys/abi/:
-//       cp15_barrier_emulation  — emulates ARMv7 CP15 DMB/DSB barriers
-//       setend_emulation        — emulates SETEND (endianness switch) instruction
-//       swp_emulation           — emulates SWP/SWPB (swap) instructions
-//     These files ONLY exist when the kernel has CONFIG_COMPAT=y AND the CPU
-//     supports AArch32. On arm64-only systems, the kernel is built without
-//     CONFIG_COMPAT, and these files are absent.
-//     Source: arch/arm64/kernel/armv8_deprecated.c
-//
-//   Layer 4: /proc/cpuinfo Features field
-//     Linux 4.7+ (kernel commit 40a8e71eecf0) added "aarch32_el0" to the
-//     Features line in /proc/cpuinfo when the CPU supports AArch32 at EL0.
-//     Older kernels don't report this, so absence is NOT conclusive, but
-//     presence IS conclusive (it's present → 32-bit supported).
-//     On arm64-only SoCs, this feature flag is absent.
-//     Source: arch/arm64/kernel/cpuinfo.c
-//
-// Conclusion:
-//   If any of the 4 layers says "supported", the device supports AArch32.
-//   If ALL 4 layers say "not supported", we are on an arm64-only SoC.
-//   In that case, VineOS activates QEMU user-mode emulation (qemu-arm) via
-//   binfmt_misc registration to transparently execute ARMv7 binaries.
-//
-// QEMU binfmt_misc technical note:
-//   The 'F' flag in the binfmt_misc registration is CRITICAL for container use.
-//   Without 'F': kernel tries to open the interpreter path *after* pivot_root,
-//                which fails because the path is relative to the new root.
-//   With 'F': kernel opens the interpreter fd at registration time (before
-//              pivot_root) and uses that fd for all future executions.
-//              This makes it work transparently inside our namespace container.
-//   Source: Documentation/admin-guide/binfmt-misc.rst, kernel commit 948b701a607f
-//
-// QEMU user-mode performance implications:
-//   - QEMU's TCG (Tiny Code Generator) JIT compiles basic blocks of ARMv7
-//     instructions to host (arm64) instructions at runtime.
-//   - First execution of a code path pays the JIT cost; subsequent runs use
-//     the translation cache (TB cache).
-//   - Typical overhead: 2-4x for CPU-bound code, ~1.2x for I/O-bound code.
-//   - The Android Zygote's fork model helps: Zygote itself pays JIT cost once,
-//     and forked app processes inherit the warmed-up TB cache pages via COW.
-//   - Performance is acceptable for UI-driven 32-bit apps (social media,
-//     utilities, older games). Heavy 3D compute will be noticeably slower.
-
+// AArch32 detection uses 4 layers from most to least reliable:
+//   L1: ro.product.cpu.abilist32 — empty on arm64-only SoCs (Tensor G3, Dimensity 8400-Ultra)
+//   L2: ro.product.cpu.abilist   — contains "armeabi" only if CPU supports AArch32
+//   L3: /proc/sys/abi/           — kernel compat knobs only exist when CONFIG_COMPAT=y
+//   L4: /proc/cpuinfo aarch32_el0 — CPU feature flag, present on Linux 4.7+ with AArch32
+// If all four return negative, the device is arm64-only and QEMU mode is activated.
 bool host_supports_aarch32() {
-    // ── Layer 1: ro.product.cpu.abilist32 ────────────────────────────────────
-    // Most reliable Android-specific check.
-    // Empty string = arm64-only. Non-empty = has 32-bit ABIs.
-    char abi32_list[PROP_VALUE_MAX] = {};
-    int len = __system_property_get("ro.product.cpu.abilist32", abi32_list);
-    if (len > 0 && abi32_list[0] != '\0') {
-        VINE_LOGI("AArch32 check L1: ro.product.cpu.abilist32='%s' → SUPPORTED", abi32_list);
+    char buf[PROP_VALUE_MAX] = {};
+
+    __system_property_get("ro.product.cpu.abilist32", buf);
+    if (buf[0] != '\0') {
+        VINE_LOGI("AArch32: L1 abilist32='%s' → supported", buf);
         return true;
     }
-    VINE_LOGD("AArch32 check L1: abilist32 empty or absent → not supported (or unknown)");
 
-    // ── Layer 2: ro.product.cpu.abilist ──────────────────────────────────────
-    // Scan combined ABI list for 32-bit entries.
-    char abi_list[PROP_VALUE_MAX] = {};
-    __system_property_get("ro.product.cpu.abilist", abi_list);
-    if (strstr(abi_list, "armeabi") != nullptr) {
-        VINE_LOGI("AArch32 check L2: abilist='%s' contains armeabi → SUPPORTED", abi_list);
+    __system_property_get("ro.product.cpu.abilist", buf);
+    if (strstr(buf, "armeabi") != nullptr) {
+        VINE_LOGI("AArch32: L2 abilist='%s' → supported", buf);
         return true;
     }
-    VINE_LOGD("AArch32 check L2: abilist='%s' has no armeabi entry", abi_list);
 
-    // ── Layer 3: /proc/sys/abi/ kernel compat knobs ───────────────────────────
-    // These sysfs files only exist when kernel has CONFIG_COMPAT + CPU has AArch32.
-    static const char* kAbiSysfsFiles[] = {
+    static const char* kCompatKnobs[] = {
         "/proc/sys/abi/cp15_barrier_emulation",
         "/proc/sys/abi/setend_emulation",
         "/proc/sys/abi/swp_emulation",
     };
-    for (const char* f : kAbiSysfsFiles) {
+    for (const char* f : kCompatKnobs) {
         if (path_exists(f)) {
-            VINE_LOGI("AArch32 check L3: found kernel compat knob %s → SUPPORTED", f);
+            VINE_LOGI("AArch32: L3 found %s → supported", f);
             return true;
         }
     }
-    VINE_LOGD("AArch32 check L3: no /proc/sys/abi/ compat knobs found");
 
-    // ── Layer 4: /proc/cpuinfo aarch32_el0 feature flag ─────────────────────
-    // Present on Linux 4.7+ when CPU supports AArch32 at EL0.
-    // Absence is NOT conclusive (older kernels don't report it), but
-    // presence IS conclusive.
     auto cpuinfo = read_file("/proc/cpuinfo");
     if (cpuinfo.has_value() && cpuinfo->find("aarch32_el0") != std::string::npos) {
-        VINE_LOGI("AArch32 check L4: found aarch32_el0 in /proc/cpuinfo → SUPPORTED");
+        VINE_LOGI("AArch32: L4 aarch32_el0 in cpuinfo → supported");
         return true;
     }
-    VINE_LOGD("AArch32 check L4: aarch32_el0 absent from /proc/cpuinfo");
 
-    // All 4 layers returned negative → arm64-only SoC confirmed.
-    // VineOS will activate QEMU user-mode emulation for 32-bit apps in the guest.
-    VINE_LOGI("AArch32 detection: ALL layers negative → arm64-only SoC. "
-              "QEMU user-mode required for armeabi-v7a guest apps.");
+    VINE_LOGI("AArch32: all layers negative → arm64-only SoC, QEMU required");
     return false;
 }
 

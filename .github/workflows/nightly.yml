@@ -2,14 +2,20 @@ name: Nightly Build
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # 02:00 UTC every night
-  workflow_dispatch:       # Allow manual trigger
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
 
 jobs:
   nightly:
     name: Nightly debug build
     runs-on: ubuntu-latest
-    if: github.repository == 'Hexadecinull/VineOS'
+    if: |
+      github.repository == 'Hexadecinull/VineOS' &&
+      (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
 
     steps:
       - uses: actions/checkout@v4
@@ -29,19 +35,13 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Verify gradle.properties
-        run: |
-          grep -q "android.useAndroidX=true" gradle.properties || \
-            (echo "FAIL: android.useAndroidX not set" && exit 1)
-          echo "gradle.properties OK"
-
       - name: Run unit tests
         run: ./gradlew :app:testDebugUnitTest
 
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug
 
-      - name: Get short SHA and date
+      - name: Get metadata
         id: meta
         run: |
           echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
@@ -67,7 +67,7 @@ jobs:
             github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `Nightly build failed (${ new Date().toISOString().slice(0,10) })`,
-              body: `The nightly build failed.\n\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`,
+              title: `Nightly build failed (${new Date().toISOString().slice(0,10)})`,
+              body: `Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`,
               labels: ['bug', 'ci'],
             });
