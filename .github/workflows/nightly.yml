@@ -2,21 +2,17 @@ name: Nightly Build
 
 on:
   schedule:
-    # Run at 02:00 UTC every night
-    - cron: '0 2 * * *'
-  # Allow manual trigger from the Actions tab
-  workflow_dispatch:
+    - cron: '0 2 * * *'  # 02:00 UTC every night
+  workflow_dispatch:       # Allow manual trigger
 
 jobs:
   nightly:
     name: Nightly debug build
     runs-on: ubuntu-latest
-    # Only run on the main branch
     if: github.repository == 'Hexadecinull/VineOS'
 
     steps:
-      - name: Checkout main
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: main
 
@@ -27,36 +23,43 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Set up Android NDK
+      - name: Set up Android SDK + NDK
         uses: android-actions/setup-android@v3
 
-      - name: Grant Gradle wrapper execute permission
+      - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Verify gradle.properties
+        run: |
+          grep -q "android.useAndroidX=true" gradle.properties || \
+            (echo "FAIL: android.useAndroidX not set" && exit 1)
+          echo "gradle.properties OK"
+
       - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
+        run: ./gradlew :app:testDebugUnitTest
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew :app:assembleDebug
 
-      - name: Get short SHA
-        id: sha
-        run: echo "short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-
-      - name: Rename APK with date + SHA
+      - name: Get short SHA and date
+        id: meta
         run: |
-          DATE=$(date +%Y%m%d)
+          echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "date=$(date +%Y%m%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Rename APK
+        run: |
           cp app/build/outputs/apk/debug/app-debug.apk \
-             "VineOS-nightly-${DATE}-${{ steps.sha.outputs.short }}.apk"
+             "VineOS-nightly-${{ steps.meta.outputs.date }}-${{ steps.meta.outputs.sha }}.apk"
 
       - name: Upload nightly APK
         uses: actions/upload-artifact@v4
         with:
-          name: nightly-${{ steps.sha.outputs.short }}
+          name: nightly-${{ steps.meta.outputs.sha }}
           path: VineOS-nightly-*.apk
-          retention-days: 7   # Nightly artifacts expire after a week
+          retention-days: 7
 
-      - name: Notify on failure
+      - name: Open issue on failure
         if: failure()
         uses: actions/github-script@v7
         with:
@@ -64,7 +67,7 @@ jobs:
             github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `Nightly build failed (${new Date().toISOString().slice(0,10)})`,
+              title: `Nightly build failed (${ new Date().toISOString().slice(0,10) })`,
               body: `The nightly build failed.\n\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`,
-              labels: ['bug', 'ci']
-            })
+              labels: ['bug', 'ci'],
+            });

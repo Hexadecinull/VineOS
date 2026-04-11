@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
+    alias(libs.plugins.ktlint)  // apply here so ktlintCheck is available in :app subproject
 }
 
 android {
@@ -21,17 +22,18 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // NDK ABI filters — arm64-v8a only for production; x86_64 for emulator dev testing
         ndk {
-            abiFilters += listOf("arm64-v8a", "x86_64")
+            abiFilters += listOf("arm64-v8a")
+            // x86_64 intentionally excluded from production builds:
+            // VineOS is ARM-only. x86_64 emulator support is a future concern.
         }
 
         externalNativeBuild {
             cmake {
-                cppFlags += listOf("-std=c++17", "-Wall", "-Wextra")
+                cppFlags += listOf("-std=c++17", "-Wall", "-Wextra", "-Wpedantic")
                 arguments += listOf(
                     "-DANDROID_STL=c++_shared",
-                    "-DANDROID_PLATFORM=android-26"
+                    "-DANDROID_PLATFORM=android-26",
                 )
             }
         }
@@ -43,7 +45,7 @@ android {
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
         debug {
@@ -78,10 +80,34 @@ android {
         schemaDirectory("$projectDir/schemas")
     }
 
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            isReturnDefaultValues = true
+        }
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+}
+
+// ── ktlint configuration ──────────────────────────────────────────────────────
+ktlint {
+    version.set("1.3.1")
+    android.set(true)       // Enables Android-specific rules
+    outputToConsole.set(true)
+    ignoreFailures.set(false)
+    reporters {
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.CHECKSTYLE)
+    }
+    filter {
+        exclude("**/generated/**")
+        exclude("**/build/**")
+        include("**/kotlin/**")
     }
 }
 
@@ -90,9 +116,10 @@ dependencies {
     implementation(libs.core.ktx)
     implementation(libs.lifecycle.runtime)
     implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.lifecycle.runtime.compose)     // collectAsStateWithLifecycle
     implementation(libs.activity.compose)
 
-    // Compose BOM — all Compose versions are aligned via BOM
+    // Compose BOM — all Compose versions aligned via BOM
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
@@ -122,18 +149,28 @@ dependencies {
     // Serialization
     implementation(libs.kotlinx.serialization)
 
-    // Networking
+    // Networking (ROM downloader)
     implementation(libs.okhttp)
 
-    // Image loading
+    // Image loading (ROM thumbnails)
     implementation(libs.coil.compose)
 
-    // Testing
+    // ── Unit tests (JVM, no device needed) ───────────────────────────────────
     testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.truth)
+    testImplementation(libs.coroutines.test)
+    testImplementation(libs.room.testing)
+
+    // ── Instrumented tests (require device/emulator) ──────────────────────────
     androidTestImplementation(libs.junit.android)
     androidTestImplementation(libs.espresso.core)
+    androidTestImplementation(libs.mockk.android)
+    androidTestImplementation(libs.truth)
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test.junit4)
+
+    // Debug-only
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)
 }

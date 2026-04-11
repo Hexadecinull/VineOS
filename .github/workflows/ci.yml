@@ -7,25 +7,23 @@ on:
       - dev
       - 'feature/**'
       - 'fix/**'
+      - 'docs/**'
   pull_request:
     branches:
       - main
       - dev
 
 concurrency:
-  # Cancel in-progress runs on the same branch when a new push arrives.
-  # This saves CI minutes during rapid iteration.
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # ── Kotlin lint ────────────────────────────────────────────────────────────
+  # ── Kotlin lint (ktlint) ───────────────────────────────────────────────────
   ktlint:
     name: Kotlin lint (ktlint)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -34,21 +32,28 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Grant Gradle wrapper execute permission
+      - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      # ktlint is applied via the org.jlleitschuh.gradle.ktlint plugin in
+      # app/build.gradle.kts. The task is available as :app:ktlintCheck.
       - name: Run ktlint
-        run: ./gradlew ktlintCheck --continue
-        # ktlint plugin must be applied in build.gradle.kts for this to work.
-        # If not yet added, this step will be a no-op until it is.
+        run: ./gradlew :app:ktlintCheck --continue
+
+      - name: Upload ktlint report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ktlint-report
+          path: app/build/reports/ktlint/
+          retention-days: 7
 
   # ── Android lint ───────────────────────────────────────────────────────────
   android-lint:
     name: Android lint
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -57,11 +62,11 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Grant Gradle wrapper execute permission
+      - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Run Android lint
-        run: ./gradlew lintDebug
+        run: ./gradlew :app:lintDebug
 
       - name: Upload lint report
         if: always()
@@ -76,8 +81,7 @@ jobs:
     name: Unit tests
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -86,11 +90,11 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Grant Gradle wrapper execute permission
+      - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
+        run: ./gradlew :app:testDebugUnitTest
 
       - name: Upload test results
         if: always()
@@ -100,14 +104,13 @@ jobs:
           path: app/build/reports/tests/testDebugUnitTest/
           retention-days: 7
 
-  # ── Debug APK build ────────────────────────────────────────────────────────
+  # ── Debug APK build (includes NDK compile) ────────────────────────────────
   build-debug:
     name: Build debug APK
     runs-on: ubuntu-latest
-    needs: [android-lint, unit-tests]
+    needs: [ktlint, android-lint, unit-tests]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -116,15 +119,16 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Set up Android NDK
+      # The NDK version is auto-resolved from app/build.gradle.kts ndkVersion
+      # via the android-actions/setup-android action.
+      - name: Set up Android SDK + NDK
         uses: android-actions/setup-android@v3
-        # The NDK version is pulled from app/build.gradle.kts automatically
 
-      - name: Grant Gradle wrapper execute permission
+      - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew :app:assembleDebug
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
