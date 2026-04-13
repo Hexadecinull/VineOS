@@ -1,11 +1,19 @@
 package com.hexadecinull.vineos.data.repository
 
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Database
+import androidx.room.Delete
+import androidx.room.Entity
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.RoomDatabase
+import androidx.room.TypeConverter
+import androidx.room.TypeConverters
+import androidx.room.Update
 import com.hexadecinull.vineos.data.models.VMInstance
 import com.hexadecinull.vineos.data.models.VMStatus
 import kotlinx.coroutines.flow.Flow
-
-// ─── Type Converters ──────────────────────────────────────────────────────────
 
 class VineConverters {
     @TypeConverter
@@ -16,11 +24,8 @@ class VineConverters {
         runCatching { VMStatus.valueOf(value) }.getOrDefault(VMStatus.STOPPED)
 }
 
-// ─── DAOs ─────────────────────────────────────────────────────────────────────
-
 @Dao
 interface VMInstanceDao {
-
     @Query("SELECT * FROM vm_instances ORDER BY lastUsedAt DESC")
     fun observeAll(): Flow<List<VMInstance>>
 
@@ -48,8 +53,6 @@ interface VMInstanceDao {
     @Query("SELECT COUNT(*) FROM vm_instances")
     suspend fun count(): Int
 }
-
-// ─── Database ─────────────────────────────────────────────────────────────────
 
 @Database(
     entities = [VMInstance::class],

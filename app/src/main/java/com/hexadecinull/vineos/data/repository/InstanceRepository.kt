@@ -10,7 +10,6 @@ import javax.inject.Singleton
 class InstanceRepository @Inject constructor(
     private val dao: VMInstanceDao,
 ) {
-    /** Live stream of all instances, ordered by most recently used. */
     fun observeAll(): Flow<List<VMInstance>> = dao.observeAll()
 
     suspend fun getById(id: String): VMInstance? = dao.getById(id)

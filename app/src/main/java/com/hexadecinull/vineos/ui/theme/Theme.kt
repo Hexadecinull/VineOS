@@ -15,9 +15,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// ─── Static fallback color schemes (Android < 12) ────────────────────────────
-// These are used when dynamic color (Material You wallpaper extraction) is not available.
-
 private val VineLightColorScheme = lightColorScheme(
     primary = VineGreen40,
     onPrimary = VineNeutral99,
@@ -72,40 +69,21 @@ private val VineDarkColorScheme = darkColorScheme(
     outlineVariant = VineNeutralVariant30,
 )
 
-// ─── VineOSTheme ─────────────────────────────────────────────────────────────
-
-/**
- * VineOS application theme.
- *
- * On Android 12+ (API 31+): uses dynamic color extracted from the user's wallpaper
- * (Material You). This respects the system's color scheme automatically.
- *
- * On Android 8–11 (API 26–30): falls back to VineOS's custom static color scheme
- * based on vine green + earthy tones.
- *
- * Dark/light mode follows the system setting in both cases.
- */
 @Composable
 fun VineOSTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // dynamicColor can be disabled explicitly (e.g. in screenshots, dev settings toggle)
     dynamicColor: Boolean = true,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     val colorScheme = when {
-        // Material You: dynamic color available on Android 12+
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context)
-            else dynamicLightColorScheme(context)
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        // Static fallback for Android 8–11
         darkTheme -> VineDarkColorScheme
         else -> VineLightColorScheme
     }
 
-    // Apply status bar / navigation bar color to match the theme surface color.
-    // This gives an edge-to-edge feel consistent with modern Android design.
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -121,6 +99,6 @@ fun VineOSTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = VineTypography,
-        content = content
+        content = content,
     )
 }

@@ -14,17 +14,18 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
-
     @Provides
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): VineDatabase =
+    fun provideDatabase(
+        @ApplicationContext context: Context,
+    ): VineDatabase =
         Room.databaseBuilder(
             context,
             VineDatabase::class.java,
             VineDatabase.DATABASE_NAME,
         )
-        .fallbackToDestructiveMigration() // Safe for pre-1.0; replace with Migration objects post-release
-        .build()
+            .fallbackToDestructiveMigration()
+            .build()
 
     @Provides
     fun provideVMInstanceDao(db: VineDatabase): VMInstanceDao = db.vmInstanceDao()

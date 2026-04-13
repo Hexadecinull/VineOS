@@ -7,7 +7,11 @@ import com.hexadecinull.vineos.data.models.VMStatus
 import com.hexadecinull.vineos.data.repository.InstanceRepository
 import com.hexadecinull.vineos.domain.VineVMManager
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -23,10 +27,10 @@ class HomeViewModel @Inject constructor(
     private val vmManager: VineVMManager,
 ) : ViewModel() {
 
-    private val _error = MutableStateFlow<String?>(null)
+    private val errorFlow = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<HomeUiState> = instanceRepo.observeAll()
-        .combine(_error) { instances, error ->
+        .combine(errorFlow) { instances, error ->
             HomeUiState(instances = instances, isLoading = false, error = error)
         }
         .stateIn(
@@ -35,7 +39,6 @@ class HomeViewModel @Inject constructor(
             initialValue = HomeUiState(),
         )
 
-    /** True if the host CPU supports AArch32 natively (no QEMU needed). */
     val hostSupports32bit: Boolean get() = vmManager.hostSupports32bit
 
     fun launchInstance(instance: VMInstance) {
@@ -59,11 +62,10 @@ class HomeViewModel @Inject constructor(
                 vmManager.killInstance(instance.id)
             }
             instanceRepo.delete(instance)
-            // TODO: also delete the instance's storage directory via VineRuntime
         }
     }
 
     fun clearError() {
-        _error.value = null
+        errorFlow.value = null
     }
 }

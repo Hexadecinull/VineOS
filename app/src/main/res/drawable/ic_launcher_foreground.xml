@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Vine leaf silhouette centered in the safe zone (18dp inset each side) -->
+    <path
+        android:fillColor="#9FF88C"
+        android:pathData="
+            M54,20
+            C54,20 30,32 28,52
+            C26,68 36,76 46,78
+            C44,70 44,62 50,56
+            C48,66 50,74 54,80
+            C58,74 60,66 58,56
+            C64,62 64,70 62,78
+            C72,76 82,68 80,52
+            C78,32 54,20 54,20 Z
+            M54,80
+            L54,90" />
+
+    <!-- Stem -->
+    <path
+        android:strokeColor="#9FF88C"
+        android:strokeWidth="3"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M54,78 L54,90" />
+</vector>

@@ -17,14 +17,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.IOException
 
-/**
- * Instrumented Room database tests.
- * Run on a real or emulated Android device.
- */
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class VineDatabaseTest {
-
     private lateinit var db: VineDatabase
 
     @Before
@@ -43,70 +38,59 @@ class VineDatabaseTest {
     fun insertAndReadInstance() = runTest {
         val instance = buildInstance("db-test-1")
         db.vmInstanceDao().insert(instance)
-
         val fetched = db.vmInstanceDao().getById("db-test-1")
         assertThat(fetched).isNotNull()
         assertThat(fetched!!.name).isEqualTo("DB Test Instance")
     }
 
     @Test
-    fun observeAll_returnsAllInstances() = runTest {
+    fun observeAllReturnsAllInstances() = runTest {
         db.vmInstanceDao().insert(buildInstance("id-1", name = "Instance A"))
         db.vmInstanceDao().insert(buildInstance("id-2", name = "Instance B"))
-
         val all = db.vmInstanceDao().observeAll().first()
         assertThat(all).hasSize(2)
     }
 
     @Test
-    fun observeAll_orderedByLastUsedDescending() = runTest {
-        val older = buildInstance("old", lastUsedAt = 1000L)
-        val newer = buildInstance("new", lastUsedAt = 2000L)
-
-        db.vmInstanceDao().insert(older)
-        db.vmInstanceDao().insert(newer)
-
+    fun observeAllOrderedByLastUsedDescending() = runTest {
+        db.vmInstanceDao().insert(buildInstance("old", lastUsedAt = 1000L))
+        db.vmInstanceDao().insert(buildInstance("new", lastUsedAt = 2000L))
         val all = db.vmInstanceDao().observeAll().first()
         assertThat(all.first().id).isEqualTo("new")
     }
 
     @Test
-    fun updateStatus_changesStatusCorrectly() = runTest {
+    fun updateStatusChangesStatusCorrectly() = runTest {
         db.vmInstanceDao().insert(buildInstance("status-test"))
         db.vmInstanceDao().updateStatus("status-test", VMStatus.RUNNING)
-
         val fetched = db.vmInstanceDao().getById("status-test")
         assertThat(fetched!!.status).isEqualTo(VMStatus.RUNNING)
     }
 
     @Test
-    fun deleteInstance_removesFromDb() = runTest {
+    fun deleteInstanceRemovesFromDb() = runTest {
         val instance = buildInstance("del-test")
         db.vmInstanceDao().insert(instance)
         db.vmInstanceDao().delete(instance)
-
         val fetched = db.vmInstanceDao().getById("del-test")
         assertThat(fetched).isNull()
     }
 
     @Test
-    fun insertWithSameId_replacesExisting() = runTest {
+    fun insertWithSameIdReplacesExisting() = runTest {
         db.vmInstanceDao().insert(buildInstance("replace-test", name = "Original"))
         db.vmInstanceDao().insert(buildInstance("replace-test", name = "Replaced"))
-
         val fetched = db.vmInstanceDao().getById("replace-test")
         assertThat(fetched!!.name).isEqualTo("Replaced")
     }
 
     @Test
-    fun count_returnsCorrectNumber() = runTest {
+    fun countReturnsCorrectNumber() = runTest {
         assertThat(db.vmInstanceDao().count()).isEqualTo(0)
         db.vmInstanceDao().insert(buildInstance("c1"))
         db.vmInstanceDao().insert(buildInstance("c2"))
         assertThat(db.vmInstanceDao().count()).isEqualTo(2)
     }
-
-    // ── Helper ────────────────────────────────────────────────────────────────
 
     private fun buildInstance(
         id: String,

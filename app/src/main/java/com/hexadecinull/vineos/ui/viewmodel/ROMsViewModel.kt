@@ -6,7 +6,10 @@ import com.hexadecinull.vineos.data.models.DownloadProgress
 import com.hexadecinull.vineos.data.models.ROMImage
 import com.hexadecinull.vineos.data.repository.ROMRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -21,7 +24,6 @@ data class ROMsUiState(
 class ROMsViewModel @Inject constructor(
     private val romRepo: ROMRepository,
 ) : ViewModel() {
-
     val uiState: StateFlow<ROMsUiState> = combine(
         romRepo.roms,
         romRepo.downloadProgress,
@@ -39,19 +41,13 @@ class ROMsViewModel @Inject constructor(
 
     fun fetchManifest() {
         viewModelScope.launch {
-            romRepo.fetchManifest().onFailure { e ->
-                // Surface the error without crashing; user can retry
-                // In a full implementation this would update an error StateFlow
-            }
+            romRepo.fetchManifest()
         }
     }
 
     fun download(rom: ROMImage) {
         viewModelScope.launch {
-            romRepo.download(rom, onProgress = { /* progress already in StateFlow */ })
-                .onFailure { e ->
-                    // TODO: expose error to UI
-                }
+            romRepo.download(rom, onProgress = {})
         }
     }
 
