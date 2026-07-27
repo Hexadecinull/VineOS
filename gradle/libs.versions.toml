@@ -9,7 +9,7 @@ lifecycle = "2.11.0"
 activity-compose = "1.13.0"
 navigation-compose = "2.9.8"
 # Hilt 2.59+ is required for AGP 9 Gradle plugin compatibility
-hilt = "2.59.2"
+hilt = "2.60.1"
 hilt-navigation-compose = "1.4.0"
 room = "2.8.4"
 datastore = "1.2.1"
