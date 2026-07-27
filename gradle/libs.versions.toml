@@ -20,7 +20,7 @@ okhttp = "5.0.0"
 # with a KMP-first API; migrating is a bigger separate effort.
 coil = "2.7.0"
 # ktlint Gradle plugin, 14.x adds Gradle 9.1 and built-in Kotlin support
-ktlint = "14.0.1"
+ktlint = "14.2.0"
 # Testing
 junit = "4.13.2"
 junit-android = "1.2.1"
