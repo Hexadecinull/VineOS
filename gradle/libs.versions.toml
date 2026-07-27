@@ -15,7 +15,7 @@ room = "2.8.4"
 datastore = "1.2.1"
 coroutines = "1.10.2"
 serialization = "1.10.0"
-okhttp = "5.0.0"
+okhttp = "5.4.0"
 # Coil 2.x, legacy io.coil-kt coordinates. Coil 3.x moved to io.coil-kt.coil3
 # with a KMP-first API; migrating is a bigger separate effort.
 coil = "2.7.0"
