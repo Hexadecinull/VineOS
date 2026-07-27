@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
@@ -11,19 +10,22 @@ plugins {
 
 android {
     namespace = "com.hexadecinull.vineos"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.hexadecinull.vineos"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "0.1.0-alpha"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            abiFilters += listOf("arm64-v8a")
+            // Matches the host ABIs AbiCompat knows how to run natively or
+            // via QEMU. armeabi is intentionally excluded: no 32-bit-only
+            // ARM devices ship with Android 8+ (minSdk 26) in practice.
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
         }
 
         externalNativeBuild {
@@ -56,10 +58,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
+        // AGP 9's built-in Kotlin reads the Kotlin JVM target from here;
+        // there's no separate kotlinOptions block to set anymore.
     }
 
     buildFeatures {
@@ -93,7 +93,7 @@ android {
 }
 
 ktlint {
-    version.set("1.3.1")
+    version.set("1.5.0")
     android.set(true)
     outputToConsole.set(true)
     ignoreFailures.set(false)

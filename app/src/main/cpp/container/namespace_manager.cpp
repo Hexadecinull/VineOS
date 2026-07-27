@@ -23,7 +23,7 @@ Container::Container(ContainerConfig config) : config_(std::move(config)) {}
 
 Container::~Container() {
     if (status_ == ContainerStatus::RUNNING || status_ == ContainerStatus::BOOTING) {
-        VINE_LOGW("Container %s destroyed while running — force-killing", config_.instance_id.c_str());
+        VINE_LOGW("Container %s destroyed while running, force-killing", config_.instance_id.c_str());
         kill_now();
     }
 }
@@ -50,7 +50,7 @@ Container& Container::operator=(Container&& o) noexcept {
 }
 
 bool Container::start() {
-    VINE_LOGI("Container::start() — %s", config_.instance_id.c_str());
+    VINE_LOGI("Container::start(), %s", config_.instance_id.c_str());
     status_ = ContainerStatus::BOOTING;
 
     if (!mkdirs(config_.rootfs_mount_path)) {
@@ -63,7 +63,7 @@ bool Container::start() {
     if (!setup_dev_nodes()) { teardown_mounts(); status_ = ContainerStatus::ERROR; return false; }
 
     if (config_.needs_qemu_32bit && !setup_binfmt_misc()) {
-        VINE_LOGW("binfmt_misc setup failed — 32-bit apps will not work");
+        VINE_LOGW("binfmt_misc setup failed, 32-bit apps will not work");
     }
 
     if (!launch_init()) { teardown_mounts(); status_ = ContainerStatus::ERROR; return false; }
@@ -285,14 +285,6 @@ void Container::teardown_mounts() {
         umount2((root + s).c_str(), MNT_DETACH);
     }
     umount2(root.c_str(), MNT_DETACH);
-}
-
-void Container::send_touch(int action, float x, float y) {
-    VINE_LOGD("send_touch: action=%d x=%.0f y=%.0f (Phase 2)", action, x, y);
-}
-
-void Container::send_key(int keycode, bool down) {
-    VINE_LOGD("send_key: keycode=%d down=%d (Phase 2)", keycode, (int)down);
 }
 
 std::string Container::diagnostics() const {

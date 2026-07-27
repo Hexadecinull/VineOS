@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Square
 import androidx.compose.material3.FloatingActionButton
@@ -20,10 +20,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,7 +48,7 @@ fun VMDisplayScreen(
             modifier = Modifier.fillMaxSize(),
         )
 
-        // Navigation bar overlay — back, home, recents
+        // Navigation bar overlay: back, home, recents
         NavBar(
             onBack = { vm.sendBack() },
             onHome = { vm.sendHome() },
@@ -132,7 +128,7 @@ private fun NavBar(
             containerColor = Color.White.copy(alpha = 0.15f),
             contentColor = Color.White,
         ) {
-            Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
         }
         Box(modifier = Modifier.size(16.dp))
         FloatingActionButton(

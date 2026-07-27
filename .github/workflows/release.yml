@@ -1,6 +1,5 @@
 name: Release
 
-# ─────────────────────────────────────────────────────────────────────────────
 #  MANUAL DEPLOYMENT ONLY
 #
 #  This workflow is intentionally triggered only via workflow_dispatch (the
@@ -15,7 +14,6 @@ name: Release
 #    2. Create and push a version tag: git tag v0.2.0 && git push origin v0.2.0
 #    3. Go to Actions → Release → Run workflow → fill in the version tag
 #    4. Review the built APK artifact before the release goes live
-# ─────────────────────────────────────────────────────────────────────────────
 
 on:
   workflow_dispatch:
@@ -39,7 +37,7 @@ permissions:
   contents: write
 
 jobs:
-  # ── Validate inputs ────────────────────────────────────────────────────────
+  # Validate inputs
   validate:
     name: Validate release inputs
     runs-on: ubuntu-latest
@@ -53,7 +51,7 @@ jobs:
           fi
           echo "Version tag '$TAG' is valid."
 
-  # ── Build signed release APK ───────────────────────────────────────────────
+  # Build signed release APK
   build-release:
     name: Build & sign release APK
     runs-on: ubuntu-latest
@@ -129,7 +127,7 @@ jobs:
           path: VineOS-*.apk
           retention-days: 90
 
-  # ── Create GitHub Release ──────────────────────────────────────────────────
+  # Create GitHub Release
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
@@ -183,7 +181,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ── Cleanup secrets ────────────────────────────────────────────────────────
+  # Cleanup secrets
   cleanup:
     name: Clean up secrets from runner
     runs-on: ubuntu-latest

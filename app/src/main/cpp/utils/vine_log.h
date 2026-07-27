@@ -2,7 +2,6 @@
 
 #include <android/log.h>
 
-// ─── VineOS Native Logging ────────────────────────────────────────────────────
 //
 // Usage:
 //   VINE_LOGI("Starting container for instance %s", instanceId);

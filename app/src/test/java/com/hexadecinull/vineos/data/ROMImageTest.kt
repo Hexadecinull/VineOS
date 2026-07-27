@@ -8,8 +8,6 @@ import org.junit.Test
 
 class ROMImageTest {
 
-    // ── DownloadProgress ──────────────────────────────────────────────────────
-
     @Test
     fun `progressFraction is zero when totalBytes is zero`() {
         val progress = DownloadProgress(
@@ -68,8 +66,6 @@ class ROMImageTest {
         assertThat(progress.progressFraction).isGreaterThan(0f)
     }
 
-    // ── ROMImage defaults ─────────────────────────────────────────────────────
-
     @Test
     fun `ROMImage isDownloaded defaults to false`() {
         val rom = buildROM()
@@ -101,8 +97,6 @@ class ROMImageTest {
         assertThat(rom.has32BitSupport).isFalse()
         assertThat(rom.supportedAbis).doesNotContain("armeabi-v7a")
     }
-
-    // ── Helper ────────────────────────────────────────────────────────────────
 
     private fun buildROM(
         supportedAbis: List<String> = listOf("arm64-v8a", "armeabi-v7a"),

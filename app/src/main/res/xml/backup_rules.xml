@@ -2,7 +2,7 @@
 <!--
   backup_rules.xml
   Controls what gets backed up via Android Auto Backup (API 23+).
-  VM instance data and ROM images are excluded — they're large and
+  VM instance data and ROM images are excluded, they're large and
   device-specific. User preferences are backed up.
 -->
 <full-backup-content>

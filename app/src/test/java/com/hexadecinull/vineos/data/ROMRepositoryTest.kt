@@ -14,8 +14,6 @@ class ROMRepositoryTest {
     @get:Rule
     val tmpFolder = TemporaryFolder()
 
-    // ── SHA-256 helper (mirrors private method logic) ──────────────────────
-
     private fun sha256(file: File): String {
         val digest = MessageDigest.getInstance("SHA-256")
         file.inputStream().buffered().use { stream ->
@@ -49,8 +47,6 @@ class ROMRepositoryTest {
         val upper = sha256(file).uppercase()
         assertThat(lower.equals(upper, ignoreCase = true)).isTrue()
     }
-
-    // ── ROMImage state transitions ─────────────────────────────────────────
 
     @Test
     fun `NOT_DOWNLOADED is initial state`() {
@@ -89,8 +85,6 @@ class ROMRepositoryTest {
         val states = ROMDownloadState.entries.toSet()
         assertThat(states).hasSize(ROMDownloadState.entries.size)
     }
-
-    // ── Helper ────────────────────────────────────────────────────────────
 
     private fun buildROM() = ROMImage(
         id = "vine-rom-7",

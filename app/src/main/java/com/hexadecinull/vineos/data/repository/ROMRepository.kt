@@ -108,6 +108,8 @@ class ROMRepository @Inject constructor(
         return if (f.exists()) f else null
     }
 
+    fun getRom(romId: String): ROMImage? = _roms.value.find { it.id == romId }
+
     private fun verifyFile(file: File, expectedSha256: String): Boolean {
         if (!file.exists()) return false
         val digest = MessageDigest.getInstance("SHA-256")

@@ -41,7 +41,7 @@ Makefile      text eol=lf
 LICENCE       text eol=lf
 LICENSE       text eol=lf
 
-# Windows shell scripts — keep CRLF on Windows checkouts
+# Windows shell scripts, keep CRLF on Windows checkouts
 *.bat         text eol=crlf
 *.cmd         text eol=crlf
 *.ps1         text eol=crlf
@@ -112,7 +112,7 @@ gradle/wrapper/**       linguist-vendored=true
 gradlew                 linguist-vendored=true
 gradlew.bat             linguist-vendored=true
 
-# The NDK C++ is a first-class part of the project — make sure it's counted
+# The NDK C++ is a first-class part of the project, make sure it's counted
 app/src/main/cpp/**     linguist-detectable=true
 
 # Markdown docs aren't "code" for language percentage purposes

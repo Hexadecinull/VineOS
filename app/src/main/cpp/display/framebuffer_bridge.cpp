@@ -5,6 +5,7 @@
 #include <cerrno>
 #include <cstring>
 #include <atomic>
+#include <chrono>
 #include <thread>
 #include <unistd.h>
 #include <fcntl.h>
@@ -22,8 +23,6 @@ FramebufferBridge::~FramebufferBridge() {
     stop_render_loop();
     close();
 }
-
-// ─── open / close ─────────────────────────────────────────────────────────────
 
 bool FramebufferBridge::open() {
     if (!vine::path_exists(fb_device_path_)) {
@@ -56,8 +55,6 @@ void FramebufferBridge::close() {
     if (fb_fd_ >= 0) { ::close(fb_fd_); fb_fd_ = -1; }
 }
 
-// ─── set_surface ──────────────────────────────────────────────────────────────
-
 void FramebufferBridge::set_surface(ANativeWindow* window) {
     if (window_) ANativeWindow_release(window_);
     window_ = window;
@@ -69,8 +66,6 @@ void FramebufferBridge::set_surface(ANativeWindow* window) {
                   instance_id_.c_str(), guest_width_, guest_height_);
     }
 }
-
-// ─── query_fb_geometry ────────────────────────────────────────────────────────
 
 bool FramebufferBridge::query_fb_geometry() {
     struct fb_var_screeninfo vinfo{};
@@ -119,8 +114,6 @@ bool FramebufferBridge::query_fb_geometry() {
     return true;
 }
 
-// ─── mmap / munmap ────────────────────────────────────────────────────────────
-
 bool FramebufferBridge::mmap_fb() {
     if (frame_size_ == 0) { VINE_LOGE("frame_size_ is 0, cannot mmap"); return false; }
 
@@ -140,8 +133,6 @@ void FramebufferBridge::munmap_fb() {
         fb_mmap_ = nullptr;
     }
 }
-
-// ─── render_frame ─────────────────────────────────────────────────────────────
 
 bool FramebufferBridge::render_frame() {
     if (!window_ || !fb_mmap_ || fb_fd_ < 0) return false;
@@ -169,7 +160,7 @@ bool FramebufferBridge::blit_to_window() {
                 dst + y * dst_stride_bytes,
                 std::min(guest_width_, buffer.width),
                 1,
-                guest_stride_,
+                guest_stride_
             );
         }
     } else if (format_ == FrameFormat::BGRA_8888) {
@@ -195,7 +186,7 @@ bool FramebufferBridge::blit_to_window() {
             memcpy(
                 dst + y * dst_stride_bytes,
                 src + y * guest_stride_,
-                copy_bytes,
+                copy_bytes
             );
         }
     }
@@ -203,8 +194,6 @@ bool FramebufferBridge::blit_to_window() {
     ANativeWindow_unlockAndPost(window_);
     return true;
 }
-
-// ─── render loop ──────────────────────────────────────────────────────────────
 
 bool FramebufferBridge::start_render_loop() {
     if (rendering_.load()) return true;
@@ -248,8 +237,6 @@ void FramebufferBridge::stop_render_loop() {
     rendering_.store(false);
     if (render_thread_.joinable()) render_thread_.join();
 }
-
-// ─── RGB565 → RGBA8888 ────────────────────────────────────────────────────────
 
 void FramebufferBridge::convert_rgb565_to_rgba8888(
         const void* src, void* dst, int width, int height, int src_stride) {

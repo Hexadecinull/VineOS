@@ -33,8 +33,6 @@ object VineRuntime {
 
     external fun hostSupportsAArch32(): Boolean
 
-    external fun registerQemuBinfmt(instanceHandle: Long, qemuArmPath: String): Boolean
-
     // Returns -1 if the framebuffer is not yet open.
     external fun getFramebufferFd(instanceHandle: Long): Int
 

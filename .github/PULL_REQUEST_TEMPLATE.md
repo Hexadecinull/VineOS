@@ -11,26 +11,26 @@ Closes #
 
 <!-- Check all that apply -->
 
-- [ ] `feat` — New feature
-- [ ] `fix` — Bug fix
-- [ ] `docs` — Documentation only
-- [ ] `refactor` — Code restructure (no behavior change)
-- [ ] `perf` — Performance improvement
-- [ ] `test` — Tests only
-- [ ] `build` — Build system / dependencies
-- [ ] `ci` — CI configuration
-- [ ] `chore` — Maintenance
+- [ ] `feat`: New feature
+- [ ] `fix`: Bug fix
+- [ ] `docs`: Documentation only
+- [ ] `refactor`: Code restructure (no behavior change)
+- [ ] `perf`: Performance improvement
+- [ ] `test`: Tests only
+- [ ] `build`: Build system / dependencies
+- [ ] `ci`: CI configuration
+- [ ] `chore`: Maintenance
 
 ---
 
 ## Checklist
 
-- [ ] I have read [CONTRIBUTING.md](../CONTRIBUTING.md)
+- [ ] I have read [CONTRIBUTING.md](../docs/CONTRIBUTING.md)
 - [ ] My branch is based on `dev`, not `main`
 - [ ] My commits follow the [Conventional Commits](https://www.conventionalcommits.org/) format
-- [ ] My code follows the project's [coding standards](../CONTRIBUTING.md#coding-standards)
+- [ ] My code follows the project's [coding standards](../docs/CONTRIBUTING.md#coding-standards)
 - [ ] I have added/updated tests where appropriate
-- [ ] I have updated relevant documentation (README, BUILDING.md, inline comments)
+- [ ] I have updated relevant documentation (README, docs/, inline comments)
 - [ ] All CI checks pass
 
 ---

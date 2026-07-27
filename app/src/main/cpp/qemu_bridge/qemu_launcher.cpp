@@ -45,13 +45,13 @@ bool verify_qemu_binary(const std::string& path) {
     }
     // EI_CLASS=2 → ELFCLASS64
     if (elf[4] != 2) {
-        VINE_LOGE("qemu-arm binary is 32-bit — it must be compiled as arm64-v8a!");
+        VINE_LOGE("qemu-arm binary is 32-bit, it must be compiled as arm64-v8a!");
         return false;
     }
     // e_machine at offset 18 (LE): 0xB7 0x00 = EM_AARCH64
     if (elf[18] != 0xB7 || elf[19] != 0x00) {
         VINE_LOGW("qemu-arm binary machine type mismatch (expected EM_AARCH64)");
-        // Non-fatal — may still work on x86_64 dev emulators.
+        // Non-fatal, may still work on x86_64 dev emulators.
     }
 
     VINE_LOGI("qemu-arm binary verified: %s (%zu bytes)", path.c_str(), content->size());

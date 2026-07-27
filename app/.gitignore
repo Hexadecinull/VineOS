@@ -1,0 +1,18 @@
+# Module-local build outputs (the root .gitignore covers **/build/ too,
+# this is here so `app/` is self-contained if it's ever split into its
+# own module or checked out on its own).
+/build/
+/.cxx/
+/release/
+
+# Room schema history. Un-ignore if you want schema diffs tracked in git.
+/schemas/
+
+# Local keystore or signing config a developer might drop in this module.
+*.jks
+*.keystore
+keystore.properties
+
+# Loose APK/AAB someone built and forgot to move to Downloads.
+*.apk
+*.aab

@@ -1,0 +1,57 @@
+package com.hexadecinull.vineos.ui.viewmodel
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.hexadecinull.vineos.data.models.AbiCompat
+import com.hexadecinull.vineos.data.models.DownloadProgress
+import com.hexadecinull.vineos.data.models.ROMImage
+import com.hexadecinull.vineos.data.repository.ROMRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+data class ROMDetailUiState(
+    val rom: ROMImage? = null,
+    val progress: DownloadProgress? = null,
+    val runMode: AbiCompat.RunMode = AbiCompat.RunMode.UNAVAILABLE,
+)
+
+@HiltViewModel
+class ROMDetailViewModel @Inject constructor(
+    private val romRepo: ROMRepository,
+) : ViewModel() {
+    private var romId: String = ""
+
+    val uiState: StateFlow<ROMDetailUiState> = combine(
+        romRepo.roms,
+        romRepo.downloadProgress,
+    ) { roms, progress ->
+        val rom = roms.find { it.id == romId }
+        ROMDetailUiState(
+            rom = rom,
+            progress = progress[romId],
+            runMode = rom?.let { AbiCompat.romRunMode(it) } ?: AbiCompat.RunMode.UNAVAILABLE,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ROMDetailUiState())
+
+    fun load(id: String) {
+        romId = id
+        if (romRepo.getRom(id) == null) {
+            viewModelScope.launch { romRepo.fetchManifest() }
+        }
+    }
+
+    fun download() {
+        val rom = romRepo.getRom(romId) ?: return
+        viewModelScope.launch { romRepo.download(rom, onProgress = {}) }
+    }
+
+    fun delete() {
+        val rom = romRepo.getRom(romId) ?: return
+        viewModelScope.launch { romRepo.delete(rom) }
+    }
+}

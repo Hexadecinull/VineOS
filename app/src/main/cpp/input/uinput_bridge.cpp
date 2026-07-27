@@ -21,6 +21,12 @@ UInputBridge::UInputBridge(
 
 UInputBridge::~UInputBridge() { teardown(); }
 
+void UInputBridge::set_screen_size(int width, int height) {
+    if (device_created_ || width <= 0 || height <= 0) return;
+    screen_width_ = width;
+    screen_height_ = height;
+}
+
 bool UInputBridge::setup() {
     uinput_fd_ = open(uinput_dev_path_.c_str(), O_WRONLY | O_NONBLOCK | O_CLOEXEC);
     if (uinput_fd_ < 0) { VINE_LOGE_ERRNO(("open(" + uinput_dev_path_ + ")").c_str()); return false; }
@@ -105,7 +111,7 @@ void UInputBridge::send_touch(int action, float x, float y) {
             write_event(EV_ABS, ABS_X,              ix);
             write_event(EV_ABS, ABS_Y,              iy);
             break;
-        case 2: // UP — TRACKING_ID = -1 releases the slot
+        case 2: // UP: TRACKING_ID = -1 releases the slot
             write_event(EV_ABS, ABS_MT_SLOT,        0);
             write_event(EV_ABS, ABS_MT_TRACKING_ID, -1);
             write_event(EV_KEY, BTN_TOUCH,          0);

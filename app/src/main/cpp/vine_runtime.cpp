@@ -40,7 +40,7 @@ Java_com_hexadecinull_vineos_native_VineRuntime_initialize(
     const std::string data_dir = j2s(env, j_data_dir);
     const std::string lib_dir = j2s(env, j_native_lib_dir);
     if (!vine::qemu::verify_qemu_binary(vine::qemu::qemu_arm_path(lib_dir))) {
-        VINE_LOGW("qemu-arm unavailable — 32-bit support disabled");
+        VINE_LOGW("qemu-arm unavailable, 32-bit support disabled");
     }
     bool ok = vine::NamespaceManager::instance().init(data_dir, lib_dir);
     VINE_LOGI("VineRuntime::initialize → %s", ok ? "OK" : "FAILED");
@@ -144,12 +144,6 @@ Java_com_hexadecinull_vineos_native_VineRuntime_hostSupportsAArch32(
     return vine::host_supports_aarch32() ? JNI_TRUE : JNI_FALSE;
 }
 
-JNIEXPORT jboolean JNICALL
-Java_com_hexadecinull_vineos_native_VineRuntime_registerQemuBinfmt(
-        JNIEnv*, jobject, jlong, jstring) {
-    return JNI_TRUE;
-}
-
 JNIEXPORT jint JNICALL
 Java_com_hexadecinull_vineos_native_VineRuntime_getFramebufferFd(
         JNIEnv*, jobject, jlong handle) {
@@ -208,13 +202,25 @@ Java_com_hexadecinull_vineos_native_VineRuntime_stopRendering(
     }
 }
 
+// UInputBridge starts with a 1080x1920 guess (see startInstance); once the
+// framebuffer has actually queried the guest's real resolution, sync it in
+// before the uinput device is created so touch coordinates map correctly.
+static void sync_screen_size(InstanceRuntime& rt) {
+    if (rt.fb && rt.fb->is_open() && rt.input && !rt.input->is_ready()) {
+        rt.input->set_screen_size(rt.fb->guest_width(), rt.fb->guest_height());
+    }
+}
+
 JNIEXPORT void JNICALL
 Java_com_hexadecinull_vineos_native_VineRuntime_sendTouchEvent(
         JNIEnv*, jobject, jlong handle, jint action, jfloat x, jfloat y) {
     auto it = g_runtimes.find((int64_t)handle);
     if (it == g_runtimes.end() || !it->second.input) return;
     auto& inp = it->second.input;
-    if (!inp->is_ready()) inp->setup();
+    if (!inp->is_ready()) {
+        sync_screen_size(it->second);
+        inp->setup();
+    }
     inp->send_touch((int)action, (float)x, (float)y);
 }
 
@@ -224,7 +230,10 @@ Java_com_hexadecinull_vineos_native_VineRuntime_sendKeyEvent(
     auto it = g_runtimes.find((int64_t)handle);
     if (it == g_runtimes.end() || !it->second.input) return;
     auto& inp = it->second.input;
-    if (!inp->is_ready()) inp->setup();
+    if (!inp->is_ready()) {
+        sync_screen_size(it->second);
+        inp->setup();
+    }
     int linux_key = vine::input::UInputBridge::android_to_linux_keycode((int)android_keycode);
     if (linux_key >= 0) inp->send_key(linux_key, down == JNI_TRUE);
 }

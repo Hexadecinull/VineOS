@@ -1,6 +1,7 @@
 package com.hexadecinull.vineos.data
 
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import com.hexadecinull.vineos.data.models.VMInstance
 import com.hexadecinull.vineos.data.models.VMStatus
 import com.hexadecinull.vineos.data.repository.VineConverters
@@ -9,8 +10,6 @@ import org.junit.Test
 class VMInstanceTest {
 
     private val converters = VineConverters()
-
-    // ── VMStatus converter round-trips ────────────────────────────────────────
 
     @Test
     fun `VMStatus STOPPED converts to string and back`() {
@@ -43,13 +42,11 @@ class VMInstanceTest {
         VMStatus.entries.forEach { status ->
             val string = converters.fromVMStatus(status)
             val back = converters.toVMStatus(string)
-            assertThat(back)
-                .named("round-trip for $status")
+            assertWithMessage("round-trip for $status")
+                .that(back)
                 .isEqualTo(status)
         }
     }
-
-    // ── VMInstance defaults ───────────────────────────────────────────────────
 
     @Test
     fun `VMInstance has STOPPED as default status`() {
@@ -92,8 +89,6 @@ class VMInstanceTest {
         val instance = buildInstance(id = "fixed-test-id")
         assertThat(instance.id).isEqualTo("fixed-test-id")
     }
-
-    // ── Helper ────────────────────────────────────────────────────────────────
 
     private fun buildInstance(
         id: String = java.util.UUID.randomUUID().toString(),

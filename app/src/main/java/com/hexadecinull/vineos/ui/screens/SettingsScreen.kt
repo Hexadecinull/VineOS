@@ -14,7 +14,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.hexadecinull.vineos.BuildConfig
 
-
 data class AppSettings(
     val dynamicColor: Boolean = true,
     val keepScreenOn: Boolean = true,
@@ -117,7 +116,6 @@ fun SettingsScreen(
         }
     }
 }
-
 
 @Composable
 fun SettingsSection(

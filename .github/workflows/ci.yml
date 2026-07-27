@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── Kotlin lint (ktlint) ───────────────────────────────────────────────────
+  # Kotlin lint (ktlint)
   ktlint:
     name: Kotlin lint (ktlint)
     runs-on: ubuntu-latest
@@ -48,7 +48,7 @@ jobs:
           path: app/build/reports/ktlint/
           retention-days: 7
 
-  # ── Android lint ───────────────────────────────────────────────────────────
+  # Android lint
   android-lint:
     name: Android lint
     runs-on: ubuntu-latest
@@ -76,7 +76,7 @@ jobs:
           path: app/build/reports/lint-results-debug.html
           retention-days: 7
 
-  # ── Unit tests ─────────────────────────────────────────────────────────────
+  # Unit tests
   unit-tests:
     name: Unit tests
     runs-on: ubuntu-latest
@@ -104,7 +104,7 @@ jobs:
           path: app/build/reports/tests/testDebugUnitTest/
           retention-days: 7
 
-  # ── Debug APK build (includes NDK compile) ────────────────────────────────
+  # Debug APK build (includes NDK compile)
   build-debug:
     name: Build debug APK
     runs-on: ubuntu-latest

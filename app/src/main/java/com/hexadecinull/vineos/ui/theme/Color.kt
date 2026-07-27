@@ -2,7 +2,7 @@ package com.hexadecinull.vineos.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// VineOS brand palette — used as seed for Material You dynamic color generation
+// VineOS brand palette, used as seed for Material You dynamic color generation
 // and as static fallback on pre-Android 12 devices.
 
 // Primary: Vine green
@@ -51,7 +51,7 @@ val VineNeutralVariant60 = Color(0xFF8A9389)
 val VineNeutralVariant80 = Color(0xFFBBC9B7)
 val VineNeutralVariant90 = Color(0xFFD7E5D2)
 
-// Status colors (for VM state indicators — not part of M3 scheme)
+// Status colors, for VM state indicators, not part of the M3 scheme
 val VineStatusRunning = Color(0xFF4CAF50)
 val VineStatusStopped = Color(0xFF9E9E9E)
 val VineStatusBooting = Color(0xFFFF9800)

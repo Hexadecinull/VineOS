@@ -7,15 +7,16 @@ import com.hexadecinull.vineos.data.models.VMInstance
 import com.hexadecinull.vineos.data.models.VMStatus
 import com.hexadecinull.vineos.data.repository.AppPreferences
 import com.hexadecinull.vineos.data.repository.InstanceRepository
+import com.hexadecinull.vineos.data.repository.ROMRepository
 import com.hexadecinull.vineos.native.VineRuntime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
@@ -33,15 +34,19 @@ sealed class CreateInstanceState {
 @HiltViewModel
 class CreateInstanceViewModel @Inject constructor(
     private val instanceRepo: InstanceRepository,
+    private val romRepo: ROMRepository,
     private val prefs: AppPreferences,
 ) : ViewModel() {
     private val stateFlow = MutableStateFlow<CreateInstanceState>(CreateInstanceState.Idle)
     val state: StateFlow<CreateInstanceState> = stateFlow.asStateFlow()
 
+    private val romFlow = MutableStateFlow<ROMImage?>(null)
+    val rom: StateFlow<ROMImage?> = romFlow.asStateFlow()
+
     val instanceName = MutableStateFlow("")
     val selectedRamMb = MutableStateFlow(AppPreferences.DEFAULT_RAM_MB)
     val selectedStorageMb = MutableStateFlow(AppPreferences.DEFAULT_STORAGE_MB)
-    val selectedEmoji = MutableStateFlow("🟢")
+    val selectedEmoji = MutableStateFlow("\uD83D\uDFE2")
 
     val isFormValid: StateFlow<Boolean> = instanceName
         .map { it.isNotBlank() }
@@ -51,6 +56,13 @@ class CreateInstanceViewModel @Inject constructor(
         viewModelScope.launch {
             selectedRamMb.value = prefs.defaultRamMb.first()
             selectedStorageMb.value = prefs.defaultStorageMb.first()
+        }
+    }
+
+    fun loadRom(romId: String) {
+        romFlow.value = romRepo.getRom(romId)
+        if (instanceName.value.isBlank()) {
+            instanceName.value = romFlow.value?.displayName.orEmpty()
         }
     }
 

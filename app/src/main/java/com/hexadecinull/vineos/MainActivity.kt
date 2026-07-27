@@ -20,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -33,7 +32,10 @@ import androidx.navigation.compose.rememberNavController
 import com.hexadecinull.vineos.ui.navigation.Screen
 import com.hexadecinull.vineos.ui.navigation.bottomNavItems
 import com.hexadecinull.vineos.ui.screens.AppSettings
+import com.hexadecinull.vineos.ui.screens.CreateInstanceScreen
 import com.hexadecinull.vineos.ui.screens.HomeScreen
+import com.hexadecinull.vineos.ui.screens.InstanceDetailScreen
+import com.hexadecinull.vineos.ui.screens.ROMDetailScreen
 import com.hexadecinull.vineos.ui.screens.ROMsScreen
 import com.hexadecinull.vineos.ui.screens.SettingsScreen
 import com.hexadecinull.vineos.ui.screens.VMDisplayScreen
@@ -129,7 +131,7 @@ fun VineOSApp(
                 )
             }
 
-            // VM display — full-screen, no bottom bar, direct to the running guest
+            // Full-screen, no bottom bar: direct view into the running guest
             composable(Screen.VMDisplay.route) { back ->
                 val id = back.arguments?.getString("instanceId") ?: return@composable
                 VMDisplayScreen(
@@ -141,17 +143,38 @@ fun VineOSApp(
 
             composable(Screen.InstanceDetail.route) { back ->
                 val id = back.arguments?.getString("instanceId") ?: return@composable
-                // InstanceDetailScreen — Phase 2
-                androidx.compose.material3.Surface(Modifier.fillMaxSize()) {
-                    Text("Instance Detail — $id", modifier = Modifier.padding(16.dp))
-                }
+                InstanceDetailScreen(
+                    instanceId = id,
+                    onBack = { navController.popBackStack() },
+                    onLaunch = { navController.navigate(Screen.VMDisplay.createRoute(it)) },
+                    onDeleted = { navController.popBackStack() },
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
 
             composable(Screen.ROMDetail.route) { back ->
                 val id = back.arguments?.getString("romId") ?: return@composable
-                androidx.compose.material3.Surface(Modifier.fillMaxSize()) {
-                    Text("ROM Detail — $id")
-                }
+                ROMDetailScreen(
+                    romId = id,
+                    onBack = { navController.popBackStack() },
+                    onCreateInstance = { navController.navigate(Screen.CreateInstance.createRoute(it)) },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+
+            composable(Screen.CreateInstance.route) { back ->
+                val id = back.arguments?.getString("romId") ?: return@composable
+                CreateInstanceScreen(
+                    romId = id,
+                    onBack = { navController.popBackStack() },
+                    onCreated = { instanceId ->
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
+                        navController.navigate(Screen.VMDisplay.createRoute(instanceId))
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
     }
@@ -162,7 +185,7 @@ private fun VineBottomNavBar(navController: NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val current = navBackStackEntry?.destination
 
-    // Hide bottom bar on full-screen VM display
+    // Only shown on the three bottom-nav destinations
     val showBar = bottomNavItems.any { item ->
         current?.hierarchy?.any { it.route == item.screen.route } == true
     }

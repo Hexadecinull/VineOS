@@ -1,30 +1,34 @@
 [versions]
-# AGP 8.9.0 is the first version with full compileSdk=36 support
-agp = "8.9.0"
-kotlin = "2.0.21"
-compose-bom = "2024.11.00"
-core-ktx = "1.15.0"
-lifecycle = "2.8.7"
-activity-compose = "1.9.3"
-navigation-compose = "2.8.4"
-hilt = "2.52"
+# AGP 9.2.0 is the minimum version with compileSdk 37 support for Compose
+agp = "9.2.0"
+kotlin = "2.3.20"
+ksp = "2.3.9"
+compose-bom = "2026.06.00"
+core-ktx = "1.16.0"
+lifecycle = "2.9.4"
+activity-compose = "1.10.1"
+navigation-compose = "2.9.7"
+# Hilt 2.59+ is required for AGP 9 Gradle plugin compatibility
+hilt = "2.59.2"
 hilt-navigation-compose = "1.2.0"
-room = "2.6.1"
+room = "2.8.4"
 datastore = "1.1.1"
-coroutines = "1.9.0"
-serialization = "1.7.3"
-okhttp = "4.12.0"
+coroutines = "1.10.2"
+serialization = "1.10.0"
+okhttp = "5.0.0"
+# Coil 2.x, legacy io.coil-kt coordinates. Coil 3.x moved to io.coil-kt.coil3
+# with a KMP-first API; migrating is a bigger separate effort.
 coil = "2.7.0"
-# ktlint Gradle plugin — 12.x is compatible with Gradle 8.x + Kotlin 2.x
-ktlint = "12.1.1"
+# ktlint Gradle plugin, 14.x adds Gradle 9.1 and built-in Kotlin support
+ktlint = "14.0.1"
 # Testing
 junit = "4.13.2"
 junit-android = "1.2.1"
 espresso = "3.6.1"
 mockk = "1.13.12"
-coroutines-test = "1.9.0"
+coroutines-test = "1.10.2"
 truth = "1.4.4"
-room-test = "2.6.1"
+room-test = "2.8.4"
 
 [libraries]
 # Core
@@ -76,22 +80,23 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 # Image loading
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 
-# Testing — unit
+# Testing, unit
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 mockk-android = { group = "io.mockk", name = "mockk-android", version.ref = "mockk" }
 truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
 
-# Testing — instrumented
+# Testing, instrumented
 junit-android = { group = "androidx.test.ext", name = "junit", version.ref = "junit-android" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+# AGP 9 has built-in Kotlin support, so org.jetbrains.kotlin.android is no
+# longer applied. kotlin-compose and kotlin-serialization are unaffected.
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
-ksp = { id = "com.google.devtools.ksp", version = "2.0.21-1.0.27" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 room = { id = "androidx.room", version.ref = "room" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }

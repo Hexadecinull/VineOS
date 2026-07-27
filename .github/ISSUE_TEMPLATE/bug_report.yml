@@ -8,9 +8,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report a bug. Please fill in as much detail as possible — it helps us fix issues faster.
+        Thanks for taking the time to report a bug. Please fill in as much detail as possible, it helps us fix issues faster.
         
-        **For security vulnerabilities**, please do NOT open a public issue. See [CONTRIBUTING.md](../CONTRIBUTING.md#security-vulnerabilities) instead.
+        **For security vulnerabilities**, please do NOT open a public issue. See [SECURITY.md](../docs/SECURITY.md#reporting-a-vulnerability) instead.
 
   - type: input
     id: vineos-version

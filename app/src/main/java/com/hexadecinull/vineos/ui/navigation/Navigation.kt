@@ -9,8 +9,6 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.ui.graphics.vector.ImageVector
 
-// ─── Destinations ─────────────────────────────────────────────────────────────
-
 sealed class Screen(val route: String) {
     // Bottom nav destinations
     data object Home : Screen("home")
@@ -31,8 +29,6 @@ sealed class Screen(val route: String) {
         fun createRoute(instanceId: String) = "vm_display/$instanceId"
     }
 }
-
-// ─── Bottom Nav Items ─────────────────────────────────────────────────────────
 
 data class BottomNavItem(
     val screen: Screen,
