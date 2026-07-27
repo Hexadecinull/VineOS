@@ -121,7 +121,7 @@ jobs:
           echo "APK_NAME=VineOS-${VERSION}.apk" >> "$GITHUB_ENV"
 
       - name: Upload signed APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-apk-${{ github.event.inputs.version_tag }}
           path: VineOS-*.apk
