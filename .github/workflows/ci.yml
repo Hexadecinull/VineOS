@@ -122,7 +122,7 @@ jobs:
       # The NDK version is auto-resolved from app/build.gradle.kts ndkVersion
       # via the android-actions/setup-android action.
       - name: Set up Android SDK + NDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
