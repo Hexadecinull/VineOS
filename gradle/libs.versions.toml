@@ -27,7 +27,7 @@ junit-android = "1.2.1"
 espresso = "3.6.1"
 mockk = "1.13.12"
 coroutines-test = "1.10.2"
-truth = "1.4.4"
+truth = "1.4.5"
 room-test = "2.8.4"
 
 [libraries]
