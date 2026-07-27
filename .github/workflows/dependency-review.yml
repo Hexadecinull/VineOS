@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Dependency Review
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@v5
         with:
           # Fail on HIGH or CRITICAL severity vulnerabilities
           fail-on-severity: high
