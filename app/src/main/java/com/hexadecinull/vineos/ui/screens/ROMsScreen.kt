@@ -37,7 +37,7 @@ fun ROMsScreen(
         topBar = {
             LargeTopAppBar(
                 title = { Text("ROMs") },
-                colors = TopAppBarDefaults.largeTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                 )
             )

@@ -41,7 +41,7 @@ Closes #
 <!-- For native (C++) changes, please include relevant logcat output. -->
 
 **Test device(s):**
-- Device: <!-- e.g. POCO X7 Pro (Dimensity 8400-Ultra, arm64-only) -->
+- Device: <!-- e.g. brand/model, chipset, arm64-only y/n -->
 - Android version: <!-- e.g. Android 15 -->
 - Host ABI: <!-- e.g. arm64-v8a only -->
 

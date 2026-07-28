@@ -136,7 +136,7 @@ building natively for `x86_64`).
 ```bash
 git clone https://gitlab.com/qemu-project/qemu.git
 cd qemu
-git checkout v9.1.0   # or latest stable
+git checkout v11.0.0   # or latest stable
 
 cat > android-arm64-cross.ini << 'EOF'
 [binaries]

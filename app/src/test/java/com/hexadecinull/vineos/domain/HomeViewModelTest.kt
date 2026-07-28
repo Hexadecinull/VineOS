@@ -11,6 +11,8 @@ import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -42,8 +44,16 @@ class HomeViewModelTest {
         Dispatchers.resetMain()
     }
 
+    // uiState is a WhileSubscribed StateFlow, so it only starts producing real
+    // values once something collects it. backgroundScope keeps a collector
+    // alive for the rest of the test without needing manual job.cancel().
+    private fun TestScope.keepUiStateHot() {
+        backgroundScope.launch { viewModel.uiState.collect {} }
+    }
+
     @Test
     fun `initial uiState has empty instances and isLoading false`() = runTest {
+        keepUiStateHot()
         val state = viewModel.uiState.value
         assertThat(state.instances).isEmpty()
         assertThat(state.isLoading).isFalse()
@@ -55,6 +65,7 @@ class HomeViewModelTest {
         val instances = listOf(buildInstance("1"), buildInstance("2"))
         every { instanceRepo.observeAll() } returns flowOf(instances)
         val vm = HomeViewModel(instanceRepo, vmManager)
+        backgroundScope.launch { vm.uiState.collect {} }
         assertThat(vm.uiState.value.instances).hasSize(2)
     }
 
@@ -99,6 +110,7 @@ class HomeViewModelTest {
 
     @Test
     fun `clearError resets error state`() = runTest {
+        keepUiStateHot()
         viewModel.clearError()
         assertThat(viewModel.uiState.value.error).isNull()
     }

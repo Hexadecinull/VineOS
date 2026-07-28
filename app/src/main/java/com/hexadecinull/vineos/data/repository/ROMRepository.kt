@@ -37,7 +37,7 @@ class ROMRepository @Inject constructor(
             val request = Request.Builder().url(MANIFEST_URL).build()
             val body = httpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) error("HTTP ${response.code}")
-                response.body?.string() ?: error("Empty manifest response")
+                response.body.string()
             }
             val manifest = json.decodeFromString<ROMManifest>(body)
             val enriched = manifest.roms.map { rom ->
@@ -66,7 +66,7 @@ class ROMRepository @Inject constructor(
                 val request = Request.Builder().url(rom.downloadUrl).build()
                 httpClient.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) error("HTTP ${response.code}")
-                    val body = response.body ?: error("Empty body")
+                    val body = response.body
                     val totalBytes = body.contentLength().takeIf { it > 0 } ?: rom.sizeBytes
 
                     dest.outputStream().buffered(BUFFER_SIZE).use { out ->

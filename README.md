@@ -89,9 +89,9 @@ You get a real second phone inside your phone.
 - A kernel with Linux namespaces and loop device support (standard since Android 4.4)
 
 32-bit ARM guest apps run natively where the host CPU supports it, and
-through QEMU user-mode emulation everywhere else, including on arm64-only
-SoCs like Google Tensor G3 and MediaTek Dimensity 8400-Ultra, and on
-non-ARM hosts entirely. See
+through QEMU user-mode emulation everywhere else, including on the growing
+range of arm64-only SoCs across many vendors, and on non-ARM hosts
+entirely. See
 [ARCHITECTURE.md](docs/ARCHITECTURE.md#abi-compatibility) for the full
 host/guest compatibility matrix.
 
@@ -176,9 +176,11 @@ Root is not required for the planned no-root path (Phase 4). The current
 implementation requires `CAP_SYS_ADMIN` for `unshare()` and `mount()`.
 Root is optional, only for Magisk inside instances.
 
-**Will it work on my Dimensity 8400-Ultra phone (POCO X7 Pro)?**
-Yes, that's one of the primary target devices. VineOS auto-detects
-arm64-only SoCs and enables QEMU mode automatically.
+**Does VineOS work on arm64-only phones without 32-bit support?**
+Yes, this is one of the core things VineOS is built for. We're aiming to
+support a wide range of SoCs across vendors, not just a specific model or
+two, and VineOS auto-detects arm64-only chips and switches to QEMU mode
+automatically.
 
 **Why GPL-3.0 and not MIT/Apache?**
 VineOS uses QEMU (GPL-2.0-or-later) and is architecturally inspired by

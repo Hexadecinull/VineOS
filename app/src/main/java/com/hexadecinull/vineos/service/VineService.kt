@@ -12,8 +12,8 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class VineService : Service() {
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        return when (intent?.action ?: ACTION_START) {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int =
+        when (intent?.action ?: ACTION_START) {
             ACTION_START -> {
                 startForeground(NOTIF_ID, buildNotification(runningCount = 0))
                 START_STICKY
@@ -25,7 +25,6 @@ class VineService : Service() {
             }
             else -> START_NOT_STICKY
         }
-    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 

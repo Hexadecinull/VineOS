@@ -10,8 +10,9 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -42,21 +43,31 @@ class InstanceDetailViewModelTest {
         Dispatchers.resetMain()
     }
 
+    // uiState is a WhileSubscribed StateFlow: it only produces real combined
+    // values once something collects it. backgroundScope keeps a collector
+    // alive for the rest of the test without needing manual job.cancel().
+    private fun TestScope.keepHot() {
+        backgroundScope.launch { viewModel.uiState.collect {} }
+    }
+
     @Test
     fun `initial uiState has no instance until load is called`() = runTest {
-        assertThat(viewModel.uiState.first().instance).isNull()
+        keepHot()
+        assertThat(viewModel.uiState.value.instance).isNull()
     }
 
     @Test
     fun `load surfaces the matching instance from the repository`() = runTest {
+        keepHot()
         viewModel.load("id-1")
-        assertThat(viewModel.uiState.first().instance?.id).isEqualTo("id-1")
+        assertThat(viewModel.uiState.value.instance?.id).isEqualTo("id-1")
     }
 
     @Test
     fun `load with an unknown id surfaces no instance`() = runTest {
+        keepHot()
         viewModel.load("does-not-exist")
-        assertThat(viewModel.uiState.first().instance).isNull()
+        assertThat(viewModel.uiState.value.instance).isNull()
     }
 
     @Test
@@ -94,10 +105,11 @@ class InstanceDetailViewModelTest {
 
     @Test
     fun `refreshDiagnostics surfaces vmManager diagnostics text`() = runTest {
+        keepHot()
         viewModel.load("id-1")
         every { vmManager.getDiagnostics("id-1") } returns "mount table: ok"
         viewModel.refreshDiagnostics()
-        assertThat(viewModel.uiState.first().diagnostics).isEqualTo("mount table: ok")
+        assertThat(viewModel.uiState.value.diagnostics).isEqualTo("mount table: ok")
     }
 
     private fun buildInstance(

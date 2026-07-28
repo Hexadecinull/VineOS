@@ -2,6 +2,7 @@ package com.hexadecinull.vineos.ui.viewmodel
 
 import com.google.common.truth.Truth.assertThat
 import com.hexadecinull.vineos.data.models.AbiCompat
+import com.hexadecinull.vineos.data.models.DownloadProgress
 import com.hexadecinull.vineos.data.models.ROMDownloadState
 import com.hexadecinull.vineos.data.models.ROMImage
 import com.hexadecinull.vineos.data.repository.ROMRepository
@@ -10,8 +11,9 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -41,15 +43,24 @@ class ROMDetailViewModelTest {
         Dispatchers.resetMain()
     }
 
+    // uiState is a WhileSubscribed StateFlow: it only produces real combined
+    // values once something collects it. backgroundScope keeps a collector
+    // alive for the rest of the test without needing manual job.cancel().
+    private fun TestScope.keepHot(vm: ROMDetailViewModel = viewModel) {
+        backgroundScope.launch { vm.uiState.collect {} }
+    }
+
     @Test
     fun `initial uiState has no rom until load is called`() = runTest {
-        assertThat(viewModel.uiState.first().rom).isNull()
+        keepHot()
+        assertThat(viewModel.uiState.value.rom).isNull()
     }
 
     @Test
     fun `load surfaces the matching rom and its run mode`() = runTest {
+        keepHot()
         viewModel.load("rom-1")
-        val state = viewModel.uiState.first()
+        val state = viewModel.uiState.value
         assertThat(state.rom?.id).isEqualTo("rom-1")
         assertThat(state.runMode).isEqualTo(AbiCompat.RunMode.NATIVE)
     }
@@ -97,7 +108,7 @@ class ROMDetailViewModelTest {
     @Test
     fun `uiState reflects in-progress download from the repository`() = runTest {
         val progress = mapOf(
-            "rom-1" to com.hexadecinull.vineos.data.models.DownloadProgress(
+            "rom-1" to DownloadProgress(
                 romId = "rom-1",
                 bytesDownloaded = 50L,
                 totalBytes = 100L,
@@ -106,8 +117,9 @@ class ROMDetailViewModelTest {
         )
         every { romRepo.downloadProgress } returns flowOf(progress)
         val vm = ROMDetailViewModel(romRepo)
+        keepHot(vm)
         vm.load("rom-1")
-        assertThat(vm.uiState.first().progress?.state).isEqualTo(ROMDownloadState.DOWNLOADING)
+        assertThat(vm.uiState.value.progress?.state).isEqualTo(ROMDownloadState.DOWNLOADING)
     }
 
     private fun buildRom(id: String, abis: List<String> = listOf(AbiCompat.ARM64_V8A)) = ROMImage(

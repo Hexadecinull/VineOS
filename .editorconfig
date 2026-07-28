@@ -11,6 +11,11 @@ trim_trailing_whitespace = true
 indent_size = 4
 max_line_length = 140
 
+# android_studio matches this project's actual style. ktlint_official turns
+# on several extra opinionated rules (blank lines before every declaration,
+# forced if/else bracing, etc.) that don't match how this codebase is written.
+ktlint_code_style = android_studio
+
 # Wildcard imports are standard in Compose, e.g. import androidx.compose.material3.*
 ktlint_standard_no-wildcard-imports = disabled
 
@@ -20,25 +25,25 @@ ktlint_function_naming_ignore_when_annotated_with = Composable
 # Backing properties (_foo / foo pattern), allow private mutable state fields
 ktlint_standard_backing-property-naming = disabled
 
-# Trailing commas are a style choice here, not required
-ij_kotlin_allow_trailing_comma = false
-ij_kotlin_allow_trailing_comma_on_call_site = false
+# Trailing commas are used inconsistently throughout by design (added where
+# they help diffs on long multi-line calls, skipped on short ones); don't
+# enforce either direction.
+ktlint_standard_trailing-comma-on-call-site = disabled
+ktlint_standard_trailing-comma-on-declaration-site = disabled
 
-# Blank line at start of class body, generated/tool code often includes one
-ktlint_standard_no-blank-line-before-rbrace = disabled
+# Chain formatting (.foo()\n.bar()) is a style choice, not enforced
+ktlint_standard_chain-wrapping = disabled
+
+# Don't force one-argument/parameter-per-line wrapping for short calls
+ktlint_standard_argument-list-wrapping = disabled
+ktlint_standard_parameter-list-wrapping = disabled
+ktlint_standard_function-signature = disabled
+
+# Manual alignment (e.g. lining up -> in a when block) is allowed
+ktlint_standard_no-multi-spaces = disabled
 
 # Multiline expression wrapping, let developers break lines where readable
 ktlint_standard_multiline-expression-wrapping = disabled
-
-# Braces, allow single-line if/else without braces in simple expressions
-ktlint_standard_no-single-line-block-comment = disabled
-
-# Don't force one-parameter-per-line wrapping for short function signatures
-ktlint_standard_function-signature = disabled
-ktlint_standard_parameter-list-wrapping = disabled
-
-# Let single-expression when/if branches stay unbraced even next to braced ones
-ktlint_standard_when-entry-bracing = disabled
 
 # Annotations on their own line are a style choice, not required
 ktlint_standard_annotation = disabled

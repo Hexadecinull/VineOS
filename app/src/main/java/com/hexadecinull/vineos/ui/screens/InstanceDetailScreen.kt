@@ -93,7 +93,13 @@ fun InstanceDetailScreen(
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (instance.status == VMStatus.STOPPED || instance.status == VMStatus.ERROR) {
-                    Button(onClick = { vm.launch(instance); onLaunch(instance.id) }, modifier = Modifier.weight(1f)) {
+                    Button(
+                        onClick = {
+                            vm.launch(instance)
+                            onLaunch(instance.id)
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) {
                         Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
                         Text("Launch")

@@ -31,7 +31,7 @@ fun HomeScreen(
         topBar = {
             LargeTopAppBar(
                 title = { Text("Instances") },
-                colors = TopAppBarDefaults.largeTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
                 )

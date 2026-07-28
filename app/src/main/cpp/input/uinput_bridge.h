@@ -20,11 +20,10 @@ enum class TouchAction { DOWN = 0, MOVE = 1, UP = 2 };
 // expects). Host touch/key events come in through VineRuntime's JNI layer,
 // get written as input_event structs to /dev/uinput, and the guest's
 // InputReader picks them up like a real hardware device.
-//
-// TODO: multitouch slot tracking (only single-touch is wired up today),
-// pressure and contact size reporting.
 class UInputBridge {
 public:
+    static constexpr int kMaxSlots = 10;
+
     // uinput_dev_path is /dev/uinput inside the guest rootfs. screen_width
     // and screen_height set the MT coordinate range.
     UInputBridge(
@@ -57,7 +56,9 @@ public:
     // action: 0=DOWN, 1=MOVE, 2=UP. x/y are in guest screen space.
     void send_touch(int action, float x, float y);
 
-    // Future: support up to 10 concurrent touch points.
+    // Up to kMaxSlots concurrent contacts. Each point's slot must stay
+    // consistent across calls for a given finger (DOWN then MOVE... then
+    // an inactive point to lift it), same as Android's own MT protocol.
     void send_multitouch(const TouchPoint* points, int count);
 
     // linux_keycode is a Linux KEY_* code from linux/input-event-codes.h.
@@ -75,6 +76,10 @@ private:
     int uinput_fd_ = -1;
     bool device_created_ = false;
     int active_slot_ = 0; // Current single-touch slot
+
+    // Per-slot tracking ID for send_multitouch, -1 means the slot is free.
+    int slot_tracking_ids_[kMaxSlots];
+    int next_tracking_id_ = 1;
 
     bool write_event(uint16_t type, uint16_t code, int32_t value);
     void sync(); // Writes a SYN_REPORT to flush the current event batch.

@@ -34,7 +34,7 @@ fun SettingsScreen(
         topBar = {
             LargeTopAppBar(
                 title = { Text("Settings") },
-                colors = TopAppBarDefaults.largeTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                 )
             )

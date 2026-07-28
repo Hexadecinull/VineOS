@@ -161,11 +161,17 @@ fun InstanceCard(
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                         DropdownMenuItem(
                             text = { Text("View Details") },
-                            onClick = { showMenu = false; onCardClick(instance) }
+                            onClick = {
+                                showMenu = false
+                                onCardClick(instance)
+                            },
                         )
                         DropdownMenuItem(
                             text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-                            onClick = { showMenu = false; onDeleteClick(instance) },
+                            onClick = {
+                                showMenu = false
+                                onDeleteClick(instance)
+                            },
                             enabled = instance.status == VMStatus.STOPPED
                         )
                     }

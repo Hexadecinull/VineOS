@@ -30,7 +30,7 @@ Harassment, gatekeeping, and bad-faith criticism will not be tolerated. See
 You don't need to write code to contribute:
 
 - **Report bugs**: open a [GitHub Issue](https://github.com/Hexadecinull/VineOS/issues) with as much detail as possible
-- **Test on your device**, especially useful if you own an arm64-only device (Pixel 8, POCO X7 Pro, etc.) or a less common host ABI like x86_64
+- **Test on your device**, especially useful if you own an arm64-only device or a less common host ABI like x86_64
 - **Improve documentation**: fix typos, add examples, clarify confusing sections in any file under [`docs/`](README.md)
 - **Build ROM images**: the project currently has no bootable ROM; this is the single biggest blocker
 - **Cross-compile QEMU** for additional host ABIs, see [BUILDING.md](BUILDING.md#building-qemu-arm)

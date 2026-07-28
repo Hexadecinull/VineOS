@@ -32,7 +32,7 @@ bool terminate_gracefully(pid_t pid, int timeout_ms = 5000);
 
 // Returns true if the host CPU supports AArch32 execution state.
 // Uses 4 detection layers (abilist32, abilist, /proc/sys/abi/*, cpuinfo).
-// Returns false on arm64-only SoCs (Tensor G3, Dimensity 8400-Ultra, etc.).
+// Returns false on arm64-only SoCs, common across a wide range of vendors.
 bool host_supports_aarch32();
 
 // Returns ABIs from ro.product.cpu.abilist.

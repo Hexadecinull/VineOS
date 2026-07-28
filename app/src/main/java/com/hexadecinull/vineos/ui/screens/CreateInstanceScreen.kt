@@ -19,7 +19,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hexadecinull.vineos.ui.viewmodel.CreateInstanceState
 import com.hexadecinull.vineos.ui.viewmodel.CreateInstanceViewModel
 
-private val emojiChoices = listOf("\uD83D\uDFE2", "\uD83D\uDD35", "\uD83D\uDFE1", "\uD83D\uDD34", "\uD83D\uDFE3", "\uD83E\uDDE1", "\u26AA", "\u26AB")
+private val emojiChoices = listOf(
+    "\uD83D\uDFE2",
+    "\uD83D\uDD35",
+    "\uD83D\uDFE1",
+    "\uD83D\uDD34",
+    "\uD83D\uDFE3",
+    "\uD83E\uDDE1",
+    "\u26AA",
+    "\u26AB",
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

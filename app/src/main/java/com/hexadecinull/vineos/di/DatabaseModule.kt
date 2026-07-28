@@ -2,8 +2,8 @@ package com.hexadecinull.vineos.di
 
 import android.content.Context
 import androidx.room.Room
-import com.hexadecinull.vineos.data.repository.VineDatabase
 import com.hexadecinull.vineos.data.repository.VMInstanceDao
+import com.hexadecinull.vineos.data.repository.VineDatabase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

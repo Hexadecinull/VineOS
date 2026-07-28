@@ -17,7 +17,9 @@ UInputBridge::UInputBridge(
     : instance_id_(std::move(instance_id))
     , uinput_dev_path_(std::move(uinput_dev_path))
     , screen_width_(screen_width)
-    , screen_height_(screen_height) {}
+    , screen_height_(screen_height) {
+    for (int& id : slot_tracking_ids_) id = -1;
+}
 
 UInputBridge::~UInputBridge() { teardown(); }
 
@@ -32,9 +34,26 @@ bool UInputBridge::setup() {
     if (uinput_fd_ < 0) { VINE_LOGE_ERRNO(("open(" + uinput_dev_path_ + ")").c_str()); return false; }
 
     if (ioctl(uinput_fd_, UI_SET_EVBIT, EV_KEY) < 0 ||
-        ioctl(uinput_fd_, UI_SET_KEYBIT, BTN_TOUCH) < 0 ||
         ioctl(uinput_fd_, UI_SET_EVBIT, EV_ABS) < 0) {
         VINE_LOGE_ERRNO("uinput EV setup"); teardown(); return false;
+    }
+
+    // Every key android_to_linux_keycode() can produce, plus BTN_TOUCH for
+    // the touchscreen itself. uinput silently drops events for key codes
+    // that weren't declared here first.
+    static const uint16_t kKeyBits[] = {
+        BTN_TOUCH, KEY_HOME, KEY_BACK, KEY_VOLUMEUP, KEY_VOLUMEDOWN, KEY_POWER,
+        KEY_CAMERA, KEY_SPACE, KEY_ENTER, KEY_BACKSPACE, KEY_MENU, KEY_MUTE,
+        KEY_APPSELECT,
+        KEY_A, KEY_B, KEY_C, KEY_D, KEY_E, KEY_F, KEY_G, KEY_H, KEY_I, KEY_J,
+        KEY_K, KEY_L, KEY_M, KEY_N, KEY_O, KEY_P, KEY_Q, KEY_R, KEY_S, KEY_T,
+        KEY_U, KEY_V, KEY_W, KEY_X, KEY_Y, KEY_Z,
+    };
+    for (uint16_t key : kKeyBits) {
+        if (ioctl(uinput_fd_, UI_SET_KEYBIT, key) < 0) {
+            VINE_LOGE("UI_SET_KEYBIT(%d): %s", key, strerror(errno));
+            teardown(); return false;
+        }
     }
 
     struct AbsAxis { uint16_t code; int min, max; };
@@ -123,6 +142,43 @@ void UInputBridge::send_touch(int action, float x, float y) {
     sync();
 }
 
+// A point is a new contact in its slot when we haven't assigned it a
+// tracking ID yet; it's a lift when it goes inactive while we still have
+// one on file. BTN_TOUCH reflects whether any slot is still down.
+void UInputBridge::send_multitouch(const TouchPoint* points, int count) {
+    if (!is_ready() || points == nullptr || count <= 0) return;
+
+    for (int i = 0; i < count; ++i) {
+        const TouchPoint& p = points[i];
+        if (p.slot < 0 || p.slot >= kMaxSlots) {
+            VINE_LOGW("send_multitouch: slot %d out of range", p.slot);
+            continue;
+        }
+
+        write_event(EV_ABS, ABS_MT_SLOT, p.slot);
+
+        if (p.active) {
+            if (slot_tracking_ids_[p.slot] < 0) {
+                slot_tracking_ids_[p.slot] = next_tracking_id_++;
+                write_event(EV_ABS, ABS_MT_TRACKING_ID, slot_tracking_ids_[p.slot]);
+            }
+            write_event(EV_ABS, ABS_MT_POSITION_X, (int)p.x);
+            write_event(EV_ABS, ABS_MT_POSITION_Y, (int)p.y);
+            write_event(EV_ABS, ABS_MT_PRESSURE, 128);
+        } else if (slot_tracking_ids_[p.slot] >= 0) {
+            write_event(EV_ABS, ABS_MT_TRACKING_ID, -1);
+            slot_tracking_ids_[p.slot] = -1;
+        }
+    }
+
+    bool any_active = false;
+    for (int id : slot_tracking_ids_) {
+        if (id >= 0) { any_active = true; break; }
+    }
+    write_event(EV_KEY, BTN_TOUCH, any_active ? 1 : 0);
+    sync();
+}
+
 void UInputBridge::send_key(int linux_keycode, bool down) {
     if (!is_ready()) return;
     write_event(EV_KEY, (uint16_t)linux_keycode, down ? 1 : 0);
@@ -130,6 +186,15 @@ void UInputBridge::send_key(int linux_keycode, bool down) {
 }
 
 int UInputBridge::android_to_linux_keycode(int android_keycode) {
+    // KEYCODE_A..KEYCODE_Z (29-54) are alphabetically sequential in Android,
+    // but Linux's KEY_A..KEY_Z follow physical QWERTY position (KEY_Q=16,
+    // KEY_W=17, KEY_E=18...), so this needs an explicit table, not a
+    // constant offset.
+    static const uint16_t kLetterKeys[26] = {
+        KEY_A, KEY_B, KEY_C, KEY_D, KEY_E, KEY_F, KEY_G, KEY_H, KEY_I, KEY_J,
+        KEY_K, KEY_L, KEY_M, KEY_N, KEY_O, KEY_P, KEY_Q, KEY_R, KEY_S, KEY_T,
+        KEY_U, KEY_V, KEY_W, KEY_X, KEY_Y, KEY_Z,
+    };
     switch (android_keycode) {
         case 3:   return KEY_HOME;
         case 4:   return KEY_BACK;
@@ -142,8 +207,11 @@ int UInputBridge::android_to_linux_keycode(int android_keycode) {
         case 67:  return KEY_BACKSPACE;
         case 82:  return KEY_MENU;
         case 164: return KEY_MUTE;
+        case 187: return KEY_APPSELECT; // KEYCODE_APP_SWITCH (recents)
         default:
-            if (android_keycode >= 29 && android_keycode <= 54) return android_keycode + 1;
+            if (android_keycode >= 29 && android_keycode <= 54) {
+                return kLetterKeys[android_keycode - 29];
+            }
             return -1;
     }
 }
