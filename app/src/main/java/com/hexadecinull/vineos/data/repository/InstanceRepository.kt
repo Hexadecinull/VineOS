@@ -2,14 +2,12 @@ package com.hexadecinull.vineos.data.repository
 
 import com.hexadecinull.vineos.data.models.VMInstance
 import com.hexadecinull.vineos.data.models.VMStatus
-import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
 
 @Singleton
-class InstanceRepository @Inject constructor(
-    private val dao: VMInstanceDao,
-) {
+class InstanceRepository @Inject constructor(private val dao: VMInstanceDao) {
     fun observeAll(): Flow<List<VMInstance>> = dao.observeAll()
 
     suspend fun getById(id: String): VMInstance? = dao.getById(id)

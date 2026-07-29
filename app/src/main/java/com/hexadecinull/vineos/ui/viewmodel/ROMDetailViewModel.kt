@@ -7,12 +7,13 @@ import com.hexadecinull.vineos.data.models.DownloadProgress
 import com.hexadecinull.vineos.data.models.ROMImage
 import com.hexadecinull.vineos.data.repository.ROMRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class ROMDetailUiState(
     val rom: ROMImage? = null,
@@ -21,15 +22,14 @@ data class ROMDetailUiState(
 )
 
 @HiltViewModel
-class ROMDetailViewModel @Inject constructor(
-    private val romRepo: ROMRepository,
-) : ViewModel() {
-    private var romId: String = ""
+class ROMDetailViewModel @Inject constructor(private val romRepo: ROMRepository) : ViewModel() {
+    private val romIdFlow = MutableStateFlow("")
 
     val uiState: StateFlow<ROMDetailUiState> = combine(
+        romIdFlow,
         romRepo.roms,
         romRepo.downloadProgress,
-    ) { roms, progress ->
+    ) { romId, roms, progress ->
         val rom = roms.find { it.id == romId }
         ROMDetailUiState(
             rom = rom,
@@ -39,19 +39,19 @@ class ROMDetailViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ROMDetailUiState())
 
     fun load(id: String) {
-        romId = id
+        romIdFlow.value = id
         if (romRepo.getRom(id) == null) {
             viewModelScope.launch { romRepo.fetchManifest() }
         }
     }
 
     fun download() {
-        val rom = romRepo.getRom(romId) ?: return
+        val rom = romRepo.getRom(romIdFlow.value) ?: return
         viewModelScope.launch { romRepo.download(rom, onProgress = {}) }
     }
 
     fun delete() {
-        val rom = romRepo.getRom(romId) ?: return
+        val rom = romRepo.getRom(romIdFlow.value) ?: return
         viewModelScope.launch { romRepo.delete(rom) }
     }
 }

@@ -6,12 +6,12 @@ import com.hexadecinull.vineos.data.models.DownloadProgress
 import com.hexadecinull.vineos.data.models.ROMImage
 import com.hexadecinull.vineos.data.repository.ROMRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class ROMsUiState(
     val roms: List<ROMImage> = emptyList(),
@@ -21,9 +21,7 @@ data class ROMsUiState(
 )
 
 @HiltViewModel
-class ROMsViewModel @Inject constructor(
-    private val romRepo: ROMRepository,
-) : ViewModel() {
+class ROMsViewModel @Inject constructor(private val romRepo: ROMRepository) : ViewModel() {
     val uiState: StateFlow<ROMsUiState> = combine(
         romRepo.roms,
         romRepo.downloadProgress,

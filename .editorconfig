@@ -34,11 +34,6 @@ ktlint_standard_trailing-comma-on-declaration-site = disabled
 # Chain formatting (.foo()\n.bar()) is a style choice, not enforced
 ktlint_standard_chain-wrapping = disabled
 
-# Don't force one-argument/parameter-per-line wrapping for short calls
-ktlint_standard_argument-list-wrapping = disabled
-ktlint_standard_parameter-list-wrapping = disabled
-ktlint_standard_function-signature = disabled
-
 # Manual alignment (e.g. lining up -> in a when block) is allowed
 ktlint_standard_no-multi-spaces = disabled
 

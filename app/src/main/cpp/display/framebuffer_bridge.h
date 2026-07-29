@@ -4,7 +4,9 @@
 #include <memory>
 #include <functional>
 #include <atomic>
+#include <cstdint>
 #include <thread>
+#include <android/choreographer.h>
 #include <android/native_window.h>
 
 namespace vine::display {
@@ -73,6 +75,10 @@ private:
     bool mmap_fb();
     void munmap_fb();
     bool blit_to_window();
+
+    // AChoreographer frame callback: draws one frame, then re-arms itself
+    // for the next vsync. Runs on render_thread_.
+    static void on_vsync(int64_t frame_time_nanos, void* data);
 };
 
 } // namespace vine::display

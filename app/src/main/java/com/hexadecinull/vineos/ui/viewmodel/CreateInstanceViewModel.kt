@@ -10,6 +10,8 @@ import com.hexadecinull.vineos.data.repository.InstanceRepository
 import com.hexadecinull.vineos.data.repository.ROMRepository
 import com.hexadecinull.vineos.native.VineRuntime
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.File
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,8 +20,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.io.File
-import javax.inject.Inject
 
 sealed class CreateInstanceState {
     data object Idle : CreateInstanceState()

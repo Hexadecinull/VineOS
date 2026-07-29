@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -46,9 +47,12 @@ class HomeViewModelTest {
 
     // uiState is a WhileSubscribed StateFlow, so it only starts producing real
     // values once something collects it. backgroundScope keeps a collector
-    // alive for the rest of the test without needing manual job.cancel().
-    private fun TestScope.keepUiStateHot() {
+    // alive for the rest of the test; advanceUntilIdle lets that collector's
+    // pending work (the combine/stateIn chain) actually run before we read
+    // .value, since starting it doesn't resolve synchronously on its own.
+    private suspend fun TestScope.keepUiStateHot() {
         backgroundScope.launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
     }
 
     @Test
@@ -66,6 +70,7 @@ class HomeViewModelTest {
         every { instanceRepo.observeAll() } returns flowOf(instances)
         val vm = HomeViewModel(instanceRepo, vmManager)
         backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
         assertThat(vm.uiState.value.instances).hasSize(2)
     }
 

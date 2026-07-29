@@ -7,24 +7,19 @@ import com.hexadecinull.vineos.data.models.VMStatus
 import com.hexadecinull.vineos.data.repository.InstanceRepository
 import com.hexadecinull.vineos.domain.VineVMManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-data class InstanceDetailUiState(
-    val instance: VMInstance? = null,
-    val diagnostics: String = "",
-)
+data class InstanceDetailUiState(val instance: VMInstance? = null, val diagnostics: String = "")
 
 @HiltViewModel
-class InstanceDetailViewModel @Inject constructor(
-    private val instanceRepo: InstanceRepository,
-    private val vmManager: VineVMManager,
-) : ViewModel() {
+class InstanceDetailViewModel @Inject constructor(private val instanceRepo: InstanceRepository, private val vmManager: VineVMManager) :
+    ViewModel() {
     private val instanceIdFlow = MutableStateFlow("")
     private val diagnosticsFlow = MutableStateFlow("")
 

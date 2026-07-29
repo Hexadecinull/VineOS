@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -45,9 +46,11 @@ class ROMDetailViewModelTest {
 
     // uiState is a WhileSubscribed StateFlow: it only produces real combined
     // values once something collects it. backgroundScope keeps a collector
-    // alive for the rest of the test without needing manual job.cancel().
-    private fun TestScope.keepHot(vm: ROMDetailViewModel = viewModel) {
+    // alive for the rest of the test; advanceUntilIdle lets its pending work
+    // actually run before we read .value.
+    private suspend fun TestScope.keepHot(vm: ROMDetailViewModel = viewModel) {
         backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
     }
 
     @Test
@@ -60,6 +63,7 @@ class ROMDetailViewModelTest {
     fun `load surfaces the matching rom and its run mode`() = runTest {
         keepHot()
         viewModel.load("rom-1")
+        advanceUntilIdle()
         val state = viewModel.uiState.value
         assertThat(state.rom?.id).isEqualTo("rom-1")
         assertThat(state.runMode).isEqualTo(AbiCompat.RunMode.NATIVE)
@@ -119,6 +123,7 @@ class ROMDetailViewModelTest {
         val vm = ROMDetailViewModel(romRepo)
         keepHot(vm)
         vm.load("rom-1")
+        advanceUntilIdle()
         assertThat(vm.uiState.value.progress?.state).isEqualTo(ROMDownloadState.DOWNLOADING)
     }
 

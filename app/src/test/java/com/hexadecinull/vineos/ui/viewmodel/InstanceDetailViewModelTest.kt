@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -45,9 +46,11 @@ class InstanceDetailViewModelTest {
 
     // uiState is a WhileSubscribed StateFlow: it only produces real combined
     // values once something collects it. backgroundScope keeps a collector
-    // alive for the rest of the test without needing manual job.cancel().
-    private fun TestScope.keepHot() {
+    // alive for the rest of the test; advanceUntilIdle lets its pending work
+    // actually run before we read .value.
+    private suspend fun TestScope.keepHot() {
         backgroundScope.launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
     }
 
     @Test
@@ -60,6 +63,7 @@ class InstanceDetailViewModelTest {
     fun `load surfaces the matching instance from the repository`() = runTest {
         keepHot()
         viewModel.load("id-1")
+        advanceUntilIdle()
         assertThat(viewModel.uiState.value.instance?.id).isEqualTo("id-1")
     }
 
@@ -67,6 +71,7 @@ class InstanceDetailViewModelTest {
     fun `load with an unknown id surfaces no instance`() = runTest {
         keepHot()
         viewModel.load("does-not-exist")
+        advanceUntilIdle()
         assertThat(viewModel.uiState.value.instance).isNull()
     }
 
@@ -109,6 +114,7 @@ class InstanceDetailViewModelTest {
         viewModel.load("id-1")
         every { vmManager.getDiagnostics("id-1") } returns "mount table: ok"
         viewModel.refreshDiagnostics()
+        advanceUntilIdle()
         assertThat(viewModel.uiState.value.diagnostics).isEqualTo("mount table: ok")
     }
 

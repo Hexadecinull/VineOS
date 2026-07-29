@@ -11,6 +11,8 @@ import com.hexadecinull.vineos.data.models.VMStatus
 import com.hexadecinull.vineos.native.VineRuntime
 import com.hexadecinull.vineos.service.VineService
 import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,13 +22,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
-import javax.inject.Singleton
 
 @Singleton
-class VineVMManager @Inject constructor(
-    @ApplicationContext private val context: Context,
-) {
+class VineVMManager @Inject constructor(@ApplicationContext private val context: Context) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private val handles = mutableMapOf<String, Long>()

@@ -3,11 +3,11 @@ package com.hexadecinull.vineos.data
 import com.google.common.truth.Truth.assertThat
 import com.hexadecinull.vineos.data.models.ROMDownloadState
 import com.hexadecinull.vineos.data.models.ROMImage
+import java.io.File
+import java.security.MessageDigest
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import java.io.File
-import java.security.MessageDigest
 
 class ROMRepositoryTest {
 

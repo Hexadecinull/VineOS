@@ -30,12 +30,7 @@ sealed class Screen(val route: String) {
     }
 }
 
-data class BottomNavItem(
-    val screen: Screen,
-    val label: String,
-    val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector,
-)
+data class BottomNavItem(val screen: Screen, val label: String, val selectedIcon: ImageVector, val unselectedIcon: ImageVector)
 
 val bottomNavItems = listOf(
     BottomNavItem(

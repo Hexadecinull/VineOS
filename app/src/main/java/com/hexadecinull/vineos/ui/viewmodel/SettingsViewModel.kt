@@ -5,17 +5,15 @@ import androidx.lifecycle.viewModelScope
 import com.hexadecinull.vineos.data.repository.AppPreferences
 import com.hexadecinull.vineos.ui.screens.AppSettings
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @HiltViewModel
-class SettingsViewModel @Inject constructor(
-    private val prefs: AppPreferences,
-) : ViewModel() {
+class SettingsViewModel @Inject constructor(private val prefs: AppPreferences) : ViewModel() {
     val settings: StateFlow<AppSettings> = combine(
         prefs.dynamicColor,
         prefs.keepScreenOn,

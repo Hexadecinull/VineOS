@@ -108,10 +108,11 @@ private fun ROMCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Surface(
-                    color = if (unavailable)
+                    color = if (unavailable) {
                         MaterialTheme.colorScheme.surfaceVariant
-                    else
-                        MaterialTheme.colorScheme.primaryContainer,
+                    } else {
+                        MaterialTheme.colorScheme.primaryContainer
+                    },
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.size(52.dp)
                 ) {
@@ -120,10 +121,11 @@ private fun ROMCard(
                             text = rom.apiLevel.toString(),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = if (unavailable)
+                            color = if (unavailable) {
                                 MaterialTheme.colorScheme.onSurfaceVariant
-                            else
-                                MaterialTheme.colorScheme.onPrimaryContainer,
+                            } else {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            },
                         )
                     }
                 }
@@ -132,10 +134,11 @@ private fun ROMCard(
                     Text(
                         text = rom.displayName,
                         style = MaterialTheme.typography.titleMedium,
-                        color = if (unavailable)
+                        color = if (unavailable) {
                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                        else
-                            MaterialTheme.colorScheme.onSurface,
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
                     )
                     Text(
                         text = "Android ${rom.androidVersion} · API ${rom.apiLevel}",

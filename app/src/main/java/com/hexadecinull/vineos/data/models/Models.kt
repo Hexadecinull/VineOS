@@ -2,8 +2,8 @@ package com.hexadecinull.vineos.data.models
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import kotlinx.serialization.Serializable
 import java.util.UUID
+import kotlinx.serialization.Serializable
 
 @Entity(tableName = "vm_instances")
 data class VMInstance(
@@ -57,12 +57,7 @@ enum class ROMDownloadState {
     CORRUPTED,
 }
 
-data class DownloadProgress(
-    val romId: String,
-    val bytesDownloaded: Long,
-    val totalBytes: Long,
-    val state: ROMDownloadState,
-) {
+data class DownloadProgress(val romId: String, val bytesDownloaded: Long, val totalBytes: Long, val state: ROMDownloadState) {
     val progressFraction: Float
         get() = if (totalBytes > 0) bytesDownloaded.toFloat() / totalBytes.toFloat() else 0f
     val progressPercent: Int

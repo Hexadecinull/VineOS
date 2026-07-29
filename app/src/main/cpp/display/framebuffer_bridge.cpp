@@ -5,13 +5,13 @@
 #include <cerrno>
 #include <cstring>
 #include <atomic>
-#include <chrono>
 #include <thread>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <linux/fb.h>
+#include <android/looper.h>
 #include <android/native_window.h>
 
 namespace vine::display {
@@ -206,24 +206,17 @@ bool FramebufferBridge::start_render_loop() {
     render_thread_ = std::thread([this]() {
         VINE_LOGI("FramebufferBridge[%s]: render loop started", instance_id_.c_str());
 
-        // Target ~60fps. We use a simple sleep-based loop for Phase 2.
-        // Phase 3 TODO: sync to Choreographer vsync via AChoreographer API.
-        constexpr int TARGET_FRAME_US = 16667; // 1s / 60fps in microseconds
+        // A Looper is required on this thread for AChoreographer's internal
+        // handler to actually dispatch callbacks when we pump it below.
+        ALooper_prepare(0);
+        AChoreographer* choreographer = AChoreographer_getInstance();
+        AChoreographer_postFrameCallback64(choreographer, &FramebufferBridge::on_vsync, this);
 
         while (rendering_.load()) {
-            auto frame_start = std::chrono::steady_clock::now();
-
-            if (window_ && fb_mmap_) {
-                blit_to_window();
-            }
-
-            auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
-                std::chrono::steady_clock::now() - frame_start
-            ).count();
-
-            if (elapsed < TARGET_FRAME_US) {
-                usleep((useconds_t)(TARGET_FRAME_US - elapsed));
-            }
+            // Pumps the Looper's queue so Choreographer can fire on_vsync.
+            // The 16ms timeout is just an upper bound on shutdown latency;
+            // actual frame pacing comes from the vsync callback itself.
+            ALooper_pollOnce(16, nullptr, nullptr, nullptr);
         }
 
         VINE_LOGI("FramebufferBridge[%s]: render loop stopped", instance_id_.c_str());
@@ -236,6 +229,18 @@ void FramebufferBridge::stop_render_loop() {
     if (!rendering_.load()) return;
     rendering_.store(false);
     if (render_thread_.joinable()) render_thread_.join();
+}
+
+void FramebufferBridge::on_vsync(int64_t /*frame_time_nanos*/, void* data) {
+    auto* self = static_cast<FramebufferBridge*>(data);
+    if (!self->rendering_.load()) return; // Don't re-arm past shutdown.
+
+    if (self->window_ && self->fb_mmap_) {
+        self->blit_to_window();
+    }
+
+    AChoreographer_postFrameCallback64(
+        AChoreographer_getInstance(), &FramebufferBridge::on_vsync, data);
 }
 
 void FramebufferBridge::convert_rgb565_to_rgba8888(

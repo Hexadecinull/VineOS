@@ -13,15 +13,13 @@ import com.hexadecinull.vineos.data.repository.InstanceRepository
 import com.hexadecinull.vineos.domain.VineVMManager
 import com.hexadecinull.vineos.native.VineRuntime
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @HiltViewModel
-class VMDisplayViewModel @Inject constructor(
-    private val vmManager: VineVMManager,
-    private val instanceRepo: InstanceRepository,
-) : ViewModel() {
+class VMDisplayViewModel @Inject constructor(private val vmManager: VineVMManager, private val instanceRepo: InstanceRepository) :
+    ViewModel() {
 
     var isBooting by mutableStateOf(false)
         private set

@@ -125,9 +125,10 @@ When `VMDisplayScreen` attaches its `Surface` (`VineRuntime.attachSurface`),
 queries its real geometry, then a background render thread
 (`FramebufferBridge::render_frame`, looped from `startRendering`) copies
 each frame into the host `ANativeWindow` buffer, converting RGB565 to
-RGBA8888 when the guest framebuffer format requires it. Frame pacing uses
-`std::chrono::steady_clock` to avoid burning CPU faster than the display
-can present frames.
+RGBA8888 when the guest framebuffer format requires it. Frame pacing is
+driven by `AChoreographer`, the host's real vsync signal, rather than a
+fixed sleep interval, so the render thread draws exactly once per display
+refresh instead of guessing at a frame budget.
 
 ## Input pipeline
 

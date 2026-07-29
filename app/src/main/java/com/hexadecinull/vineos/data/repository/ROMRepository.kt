@@ -5,6 +5,10 @@ import com.hexadecinull.vineos.data.models.DownloadProgress
 import com.hexadecinull.vineos.data.models.ROMDownloadState
 import com.hexadecinull.vineos.data.models.ROMImage
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
+import java.security.MessageDigest
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,16 +17,9 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.File
-import java.security.MessageDigest
-import javax.inject.Inject
-import javax.inject.Singleton
 
 @Singleton
-class ROMRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val httpClient: OkHttpClient,
-) {
+class ROMRepository @Inject constructor(@ApplicationContext private val context: Context, private val httpClient: OkHttpClient) {
     private val romsDir = File(context.filesDir, "roms").also { it.mkdirs() }
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -128,11 +125,15 @@ class ROMRepository @Inject constructor(
 
     private fun refreshROM(romId: String, localFile: File?) {
         _roms.value = _roms.value.map { rom ->
-            if (rom.id == romId) rom.copy(
-                localPath = localFile?.absolutePath,
-                isDownloaded = localFile != null,
-                downloadState = if (localFile != null) ROMDownloadState.READY else ROMDownloadState.NOT_DOWNLOADED,
-            ) else rom
+            if (rom.id == romId) {
+                rom.copy(
+                    localPath = localFile?.absolutePath,
+                    isDownloaded = localFile != null,
+                    downloadState = if (localFile != null) ROMDownloadState.READY else ROMDownloadState.NOT_DOWNLOADED,
+                )
+            } else {
+                rom
+            }
         }
     }
 
