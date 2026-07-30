@@ -83,10 +83,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeEmptyState(
-    onCreateInstance: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun HomeEmptyState(onCreateInstance: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

@@ -29,12 +29,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.hexadecinull.vineos.ui.viewmodel.VMDisplayViewModel
 
 @Composable
-fun VMDisplayScreen(
-    instanceId: String,
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-    vm: VMDisplayViewModel = hiltViewModel(),
-) {
+fun VMDisplayScreen(instanceId: String, onBack: () -> Unit, modifier: Modifier = Modifier, vm: VMDisplayViewModel = hiltViewModel()) {
     DisposableEffect(instanceId) {
         vm.attach(instanceId)
         onDispose { vm.detach() }
@@ -110,12 +105,7 @@ private fun GuestSurface(
 }
 
 @Composable
-private fun NavBar(
-    onBack: () -> Unit,
-    onHome: () -> Unit,
-    onRecents: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun NavBar(onBack: () -> Unit, onHome: () -> Unit, onRecents: () -> Unit, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .background(Color.Black.copy(alpha = 0.5f), CircleShape)

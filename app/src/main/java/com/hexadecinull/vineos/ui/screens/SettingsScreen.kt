@@ -25,11 +25,7 @@ data class AppSettings(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(
-    settings: AppSettings,
-    onSettingsChange: (AppSettings) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun SettingsScreen(settings: AppSettings, onSettingsChange: (AppSettings) -> Unit, modifier: Modifier = Modifier) {
     Scaffold(
         topBar = {
             LargeTopAppBar(
@@ -118,10 +114,7 @@ fun SettingsScreen(
 }
 
 @Composable
-fun SettingsSection(
-    title: String,
-    content: @Composable ColumnScope.() -> Unit,
-) {
+fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column {
         Text(
             text = title,
@@ -135,13 +128,7 @@ fun SettingsSection(
 }
 
 @Composable
-fun SwitchSettingsItem(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
+fun SwitchSettingsItem(icon: ImageVector, title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     ListItem(
         headlineContent = { Text(title) },
         supportingContent = {
@@ -202,11 +189,7 @@ fun SliderSettingsItem(
 }
 
 @Composable
-fun InfoSettingsItem(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-) {
+fun InfoSettingsItem(icon: ImageVector, title: String, subtitle: String) {
     ListItem(
         headlineContent = { Text(title) },
         supportingContent = {

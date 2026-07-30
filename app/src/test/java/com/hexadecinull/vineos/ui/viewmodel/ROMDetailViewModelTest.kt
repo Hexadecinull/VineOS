@@ -54,13 +54,13 @@ class ROMDetailViewModelTest {
     }
 
     @Test
-    fun `initial uiState has no rom until load is called`() = runTest {
+    fun `initial uiState has no rom until load is called`() = runTest(testDispatcher) {
         keepHot()
         assertThat(viewModel.uiState.value.rom).isNull()
     }
 
     @Test
-    fun `load surfaces the matching rom and its run mode`() = runTest {
+    fun `load surfaces the matching rom and its run mode`() = runTest(testDispatcher) {
         keepHot()
         viewModel.load("rom-1")
         advanceUntilIdle()
@@ -70,21 +70,21 @@ class ROMDetailViewModelTest {
     }
 
     @Test
-    fun `load with an unknown id triggers a manifest refetch`() = runTest {
+    fun `load with an unknown id triggers a manifest refetch`() = runTest(testDispatcher) {
         every { romRepo.getRom("missing") } returns null
         viewModel.load("missing")
         coVerify { romRepo.fetchManifest() }
     }
 
     @Test
-    fun `load with a known id does not refetch the manifest`() = runTest {
+    fun `load with a known id does not refetch the manifest`() = runTest(testDispatcher) {
         every { romRepo.getRom("rom-1") } returns buildRom("rom-1")
         viewModel.load("rom-1")
         coVerify(exactly = 0) { romRepo.fetchManifest() }
     }
 
     @Test
-    fun `download is a no-op when the rom is not found`() = runTest {
+    fun `download is a no-op when the rom is not found`() = runTest(testDispatcher) {
         every { romRepo.getRom("missing") } returns null
         viewModel.load("missing")
         viewModel.download()
@@ -92,7 +92,7 @@ class ROMDetailViewModelTest {
     }
 
     @Test
-    fun `download delegates to the repository once the rom is loaded`() = runTest {
+    fun `download delegates to the repository once the rom is loaded`() = runTest(testDispatcher) {
         val rom = buildRom("rom-1")
         every { romRepo.getRom("rom-1") } returns rom
         viewModel.load("rom-1")
@@ -101,7 +101,7 @@ class ROMDetailViewModelTest {
     }
 
     @Test
-    fun `delete delegates to the repository once the rom is loaded`() = runTest {
+    fun `delete delegates to the repository once the rom is loaded`() = runTest(testDispatcher) {
         val rom = buildRom("rom-1")
         every { romRepo.getRom("rom-1") } returns rom
         viewModel.load("rom-1")
@@ -110,7 +110,7 @@ class ROMDetailViewModelTest {
     }
 
     @Test
-    fun `uiState reflects in-progress download from the repository`() = runTest {
+    fun `uiState reflects in-progress download from the repository`() = runTest(testDispatcher) {
         val progress = mapOf(
             "rom-1" to DownloadProgress(
                 romId = "rom-1",

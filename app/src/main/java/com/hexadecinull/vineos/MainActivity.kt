@@ -73,10 +73,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun VineOSApp(
-    settings: AppSettings,
-    onSettingsChange: (AppSettings) -> Unit,
-) {
+fun VineOSApp(settings: AppSettings, onSettingsChange: (AppSettings) -> Unit) {
     val navController = rememberNavController()
 
     Scaffold(

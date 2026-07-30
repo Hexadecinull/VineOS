@@ -54,13 +54,13 @@ class InstanceDetailViewModelTest {
     }
 
     @Test
-    fun `initial uiState has no instance until load is called`() = runTest {
+    fun `initial uiState has no instance until load is called`() = runTest(testDispatcher) {
         keepHot()
         assertThat(viewModel.uiState.value.instance).isNull()
     }
 
     @Test
-    fun `load surfaces the matching instance from the repository`() = runTest {
+    fun `load surfaces the matching instance from the repository`() = runTest(testDispatcher) {
         keepHot()
         viewModel.load("id-1")
         advanceUntilIdle()
@@ -68,7 +68,7 @@ class InstanceDetailViewModelTest {
     }
 
     @Test
-    fun `load with an unknown id surfaces no instance`() = runTest {
+    fun `load with an unknown id surfaces no instance`() = runTest(testDispatcher) {
         keepHot()
         viewModel.load("does-not-exist")
         advanceUntilIdle()
@@ -76,7 +76,7 @@ class InstanceDetailViewModelTest {
     }
 
     @Test
-    fun `launch updates status to BOOTING and starts the vm`() = runTest {
+    fun `launch updates status to BOOTING and starts the vm`() = runTest(testDispatcher) {
         val instance = buildInstance("launch-id")
         viewModel.launch(instance)
         coVerify { instanceRepo.updateStatus("launch-id", VMStatus.BOOTING) }
@@ -85,7 +85,7 @@ class InstanceDetailViewModelTest {
     }
 
     @Test
-    fun `stop calls vmManager and resets status to STOPPED`() = runTest {
+    fun `stop calls vmManager and resets status to STOPPED`() = runTest(testDispatcher) {
         val instance = buildInstance("stop-id", status = VMStatus.RUNNING)
         viewModel.stop(instance)
         coVerify { vmManager.stopInstance(instance) }
@@ -93,7 +93,7 @@ class InstanceDetailViewModelTest {
     }
 
     @Test
-    fun `delete on a stopped instance does not force-kill first`() = runTest {
+    fun `delete on a stopped instance does not force-kill first`() = runTest(testDispatcher) {
         val instance = buildInstance("del-id", status = VMStatus.STOPPED)
         viewModel.delete(instance)
         coVerify(exactly = 0) { vmManager.killInstance(any()) }
@@ -101,7 +101,7 @@ class InstanceDetailViewModelTest {
     }
 
     @Test
-    fun `delete on a running instance kills it first`() = runTest {
+    fun `delete on a running instance kills it first`() = runTest(testDispatcher) {
         val instance = buildInstance("del-running-id", status = VMStatus.RUNNING)
         viewModel.delete(instance)
         coVerify { vmManager.killInstance("del-running-id") }
@@ -109,7 +109,7 @@ class InstanceDetailViewModelTest {
     }
 
     @Test
-    fun `refreshDiagnostics surfaces vmManager diagnostics text`() = runTest {
+    fun `refreshDiagnostics surfaces vmManager diagnostics text`() = runTest(testDispatcher) {
         keepHot()
         viewModel.load("id-1")
         every { vmManager.getDiagnostics("id-1") } returns "mount table: ok"
@@ -118,10 +118,7 @@ class InstanceDetailViewModelTest {
         assertThat(viewModel.uiState.value.diagnostics).isEqualTo("mount table: ok")
     }
 
-    private fun buildInstance(
-        id: String,
-        status: VMStatus = VMStatus.STOPPED,
-    ) = VMInstance(
+    private fun buildInstance(id: String, status: VMStatus = VMStatus.STOPPED) = VMInstance(
         id = id,
         name = "Instance $id",
         romId = "vine-rom-7",

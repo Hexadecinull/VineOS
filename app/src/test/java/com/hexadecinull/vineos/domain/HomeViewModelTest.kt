@@ -56,7 +56,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `initial uiState has empty instances and isLoading false`() = runTest {
+    fun `initial uiState has empty instances and isLoading false`() = runTest(testDispatcher) {
         keepUiStateHot()
         val state = viewModel.uiState.value
         assertThat(state.instances).isEmpty()
@@ -65,7 +65,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `uiState reflects instances from repository`() = runTest {
+    fun `uiState reflects instances from repository`() = runTest(testDispatcher) {
         val instances = listOf(buildInstance("1"), buildInstance("2"))
         every { instanceRepo.observeAll() } returns flowOf(instances)
         val vm = HomeViewModel(instanceRepo, vmManager)
@@ -75,7 +75,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `launchInstance updates status to BOOTING and calls vmManager`() = runTest {
+    fun `launchInstance updates status to BOOTING and calls vmManager`() = runTest(testDispatcher) {
         val instance = buildInstance("test-id")
         viewModel.launchInstance(instance)
         coVerify { instanceRepo.updateStatus("test-id", VMStatus.BOOTING) }
@@ -84,7 +84,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `stopInstance calls vmManager and updates status to STOPPED`() = runTest {
+    fun `stopInstance calls vmManager and updates status to STOPPED`() = runTest(testDispatcher) {
         val instance = buildInstance("stop-id")
         viewModel.stopInstance(instance)
         coVerify { vmManager.stopInstance(instance) }
@@ -92,14 +92,14 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `deleteInstance calls repo delete`() = runTest {
+    fun `deleteInstance calls repo delete`() = runTest(testDispatcher) {
         val instance = buildInstance("del-id", status = VMStatus.STOPPED)
         viewModel.deleteInstance(instance)
         coVerify { instanceRepo.delete(instance) }
     }
 
     @Test
-    fun `deleteInstance stops running instance before deleting`() = runTest {
+    fun `deleteInstance stops running instance before deleting`() = runTest(testDispatcher) {
         val instance = buildInstance("del-run-id", status = VMStatus.RUNNING)
         viewModel.deleteInstance(instance)
         coVerify { vmManager.killInstance("del-run-id") }
@@ -114,16 +114,13 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `clearError resets error state`() = runTest {
+    fun `clearError resets error state`() = runTest(testDispatcher) {
         keepUiStateHot()
         viewModel.clearError()
         assertThat(viewModel.uiState.value.error).isNull()
     }
 
-    private fun buildInstance(
-        id: String,
-        status: VMStatus = VMStatus.STOPPED,
-    ) = VMInstance(
+    private fun buildInstance(id: String, status: VMStatus = VMStatus.STOPPED) = VMInstance(
         id = id,
         name = "Instance $id",
         romId = "vine-rom-7",

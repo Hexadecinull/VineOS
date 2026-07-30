@@ -54,8 +54,7 @@ class ROMRepository @Inject constructor(@ApplicationContext private val context:
         }
     }
 
-    suspend fun download(rom: ROMImage, onProgress: (DownloadProgress) -> Unit): Result<File> =
-        withContext(Dispatchers.IO) {
+    suspend fun download(rom: ROMImage, onProgress: (DownloadProgress) -> Unit): Result<File> = withContext(Dispatchers.IO) {
             runCatching {
                 val dest = File(romsDir, "${rom.id}.vrom")
                 updateProgress(rom.id, 0L, rom.sizeBytes, ROMDownloadState.DOWNLOADING)

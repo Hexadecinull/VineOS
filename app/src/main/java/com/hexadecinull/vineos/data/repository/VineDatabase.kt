@@ -19,8 +19,7 @@ class VineConverters {
     fun fromVMStatus(status: VMStatus): String = status.name
 
     @TypeConverter
-    fun toVMStatus(value: String): VMStatus =
-        runCatching { VMStatus.valueOf(value) }.getOrDefault(VMStatus.STOPPED)
+    fun toVMStatus(value: String): VMStatus = runCatching { VMStatus.valueOf(value) }.getOrDefault(VMStatus.STOPPED)
 }
 
 @Dao

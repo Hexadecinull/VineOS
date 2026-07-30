@@ -98,10 +98,7 @@ class ROMImageTest {
         assertThat(rom.supportedAbis).doesNotContain("armeabi-v7a")
     }
 
-    private fun buildROM(
-        supportedAbis: List<String> = listOf("arm64-v8a", "armeabi-v7a"),
-        has32Bit: Boolean = true,
-    ) = ROMImage(
+    private fun buildROM(supportedAbis: List<String> = listOf("arm64-v8a", "armeabi-v7a"), has32Bit: Boolean = true) = ROMImage(
         id = "vine-rom-7",
         displayName = "Android 7.1.2 Nougat",
         androidVersion = "7.1.2",

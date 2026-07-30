@@ -40,8 +40,7 @@ class VineVMManager @Inject constructor(@ApplicationContext private val context:
         )
     }
 
-    fun isRomCompatible(rom: ROMImage): Boolean =
-        AbiCompat.romRunMode(rom, hostAbis) != AbiCompat.RunMode.UNAVAILABLE
+    fun isRomCompatible(rom: ROMImage): Boolean = AbiCompat.romRunMode(rom, hostAbis) != AbiCompat.RunMode.UNAVAILABLE
 
     fun statusFlow(instanceId: String): StateFlow<VMStatus> =
         statusFlows.getOrPut(instanceId) { MutableStateFlow(VMStatus.STOPPED) }.asStateFlow()
@@ -116,11 +115,7 @@ class VineVMManager @Inject constructor(@ApplicationContext private val context:
         return VineRuntime.getDiagnostics(handle)
     }
 
-    private fun monitorInstance(
-        instanceId: String,
-        handle: Long,
-        flow: MutableStateFlow<VMStatus>,
-    ) = scope.launch {
+    private fun monitorInstance(instanceId: String, handle: Long, flow: MutableStateFlow<VMStatus>) = scope.launch {
         while (handles.containsKey(instanceId)) {
             delay(2000L)
             val newStatus = when (VineRuntime.getInstanceStatus(handle)) {

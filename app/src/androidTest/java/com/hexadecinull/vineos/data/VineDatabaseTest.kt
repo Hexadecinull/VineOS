@@ -92,11 +92,7 @@ class VineDatabaseTest {
         assertThat(db.vmInstanceDao().count()).isEqualTo(2)
     }
 
-    private fun buildInstance(
-        id: String,
-        name: String = "DB Test Instance",
-        lastUsedAt: Long = System.currentTimeMillis(),
-    ) = VMInstance(
+    private fun buildInstance(id: String, name: String = "DB Test Instance", lastUsedAt: Long = System.currentTimeMillis()) = VMInstance(
         id = id,
         name = name,
         romId = "vine-rom-7",

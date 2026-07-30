@@ -56,8 +56,7 @@ object AbiCompat {
         }
     }
 
-    fun romRunMode(rom: ROMImage, hostAbis: List<String> = Build.SUPPORTED_ABIS.toList()): RunMode =
-        rom.supportedAbis
+    fun romRunMode(rom: ROMImage, hostAbis: List<String> = Build.SUPPORTED_ABIS.toList()): RunMode = rom.supportedAbis
             .map { hostCanRun(it, hostAbis) }
             .minByOrNull { it.ordinal }
             ?: RunMode.UNAVAILABLE

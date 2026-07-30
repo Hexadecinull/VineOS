@@ -90,10 +90,7 @@ class VMInstanceTest {
         assertThat(instance.id).isEqualTo("fixed-test-id")
     }
 
-    private fun buildInstance(
-        id: String = java.util.UUID.randomUUID().toString(),
-        name: String = "Test Instance",
-    ) = VMInstance(
+    private fun buildInstance(id: String = java.util.UUID.randomUUID().toString(), name: String = "Test Instance") = VMInstance(
         id = id,
         name = name,
         romId = "vine-rom-7",

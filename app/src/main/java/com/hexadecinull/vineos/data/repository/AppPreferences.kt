@@ -72,6 +72,5 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
 
     suspend fun setAllowRootInstances(value: Boolean) = store.edit { it[Keys.ALLOW_ROOT] = value }
 
-    private fun Flow<Preferences>.catchIO() =
-        catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
+    private fun Flow<Preferences>.catchIO() = catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
 }
