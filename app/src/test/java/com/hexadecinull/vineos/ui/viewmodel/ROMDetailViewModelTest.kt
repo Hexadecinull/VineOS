@@ -44,10 +44,9 @@ class ROMDetailViewModelTest {
         Dispatchers.resetMain()
     }
 
-    // uiState is a WhileSubscribed StateFlow: it only produces real combined
-    // values once something collects it. backgroundScope keeps a collector
-    // alive for the rest of the test; advanceUntilIdle lets its pending work
-    // actually run before we read .value.
+    // backgroundScope keeps a collector alive for the rest of the test;
+    // advanceUntilIdle lets its pending work actually run before we read
+    // .value.
     private suspend fun TestScope.keepHot(vm: ROMDetailViewModel = viewModel) {
         backgroundScope.launch { vm.uiState.collect {} }
         advanceUntilIdle()

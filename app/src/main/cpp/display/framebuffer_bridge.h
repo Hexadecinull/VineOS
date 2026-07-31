@@ -4,7 +4,6 @@
 #include <memory>
 #include <functional>
 #include <atomic>
-#include <cstdint>
 #include <thread>
 #include <android/choreographer.h>
 #include <android/native_window.h>
@@ -78,7 +77,11 @@ private:
 
     // AChoreographer frame callback: draws one frame, then re-arms itself
     // for the next vsync. Runs on render_thread_.
-    static void on_vsync(int64_t frame_time_nanos, void* data);
+    // Signature matches AChoreographer_frameCallback (the pre-API-29 form,
+    // which uses `long` for the timestamp, not int64_t). We deliberately use
+    // this deprecated-but-still-functional variant since minSdk is 26 and
+    // AChoreographer_postFrameCallback64 requires API 29.
+    static void on_vsync(long frame_time_nanos, void* data);
 };
 
 } // namespace vine::display

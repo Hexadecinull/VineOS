@@ -13,17 +13,17 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class VineService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = when (intent?.action ?: ACTION_START) {
-            ACTION_START -> {
-                startForeground(NOTIF_ID, buildNotification(runningCount = 0))
-                START_STICKY
-            }
-            ACTION_STOP -> {
-                stopForeground(STOP_FOREGROUND_REMOVE)
-                stopSelf()
-                START_NOT_STICKY
-            }
-            else -> START_NOT_STICKY
+        ACTION_START -> {
+            startForeground(NOTIF_ID, buildNotification(runningCount = 0))
+            START_STICKY
         }
+        ACTION_STOP -> {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            START_NOT_STICKY
+        }
+        else -> START_NOT_STICKY
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 

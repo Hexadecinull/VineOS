@@ -45,11 +45,9 @@ class HomeViewModelTest {
         Dispatchers.resetMain()
     }
 
-    // uiState is a WhileSubscribed StateFlow, so it only starts producing real
-    // values once something collects it. backgroundScope keeps a collector
-    // alive for the rest of the test; advanceUntilIdle lets that collector's
-    // pending work (the combine/stateIn chain) actually run before we read
-    // .value, since starting it doesn't resolve synchronously on its own.
+    // backgroundScope keeps a collector alive for the rest of the test;
+    // advanceUntilIdle lets that collector's pending work actually run
+    // before we read .value.
     private suspend fun TestScope.keepUiStateHot() {
         backgroundScope.launch { viewModel.uiState.collect {} }
         advanceUntilIdle()

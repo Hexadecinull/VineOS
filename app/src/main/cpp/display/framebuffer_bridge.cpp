@@ -210,7 +210,7 @@ bool FramebufferBridge::start_render_loop() {
         // handler to actually dispatch callbacks when we pump it below.
         ALooper_prepare(0);
         AChoreographer* choreographer = AChoreographer_getInstance();
-        AChoreographer_postFrameCallback64(choreographer, &FramebufferBridge::on_vsync, this);
+        AChoreographer_postFrameCallback(choreographer, &FramebufferBridge::on_vsync, this);
 
         while (rendering_.load()) {
             // Pumps the Looper's queue so Choreographer can fire on_vsync.
@@ -231,7 +231,7 @@ void FramebufferBridge::stop_render_loop() {
     if (render_thread_.joinable()) render_thread_.join();
 }
 
-void FramebufferBridge::on_vsync(int64_t /*frame_time_nanos*/, void* data) {
+void FramebufferBridge::on_vsync(long /*frame_time_nanos*/, void* data) {
     auto* self = static_cast<FramebufferBridge*>(data);
     if (!self->rendering_.load()) return; // Don't re-arm past shutdown.
 
@@ -239,7 +239,7 @@ void FramebufferBridge::on_vsync(int64_t /*frame_time_nanos*/, void* data) {
         self->blit_to_window();
     }
 
-    AChoreographer_postFrameCallback64(
+    AChoreographer_postFrameCallback(
         AChoreographer_getInstance(), &FramebufferBridge::on_vsync, data);
 }
 

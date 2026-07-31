@@ -55,44 +55,44 @@ class ROMRepository @Inject constructor(@ApplicationContext private val context:
     }
 
     suspend fun download(rom: ROMImage, onProgress: (DownloadProgress) -> Unit): Result<File> = withContext(Dispatchers.IO) {
-            runCatching {
-                val dest = File(romsDir, "${rom.id}.vrom")
-                updateProgress(rom.id, 0L, rom.sizeBytes, ROMDownloadState.DOWNLOADING)
+        runCatching {
+            val dest = File(romsDir, "${rom.id}.vrom")
+            updateProgress(rom.id, 0L, rom.sizeBytes, ROMDownloadState.DOWNLOADING)
 
-                val request = Request.Builder().url(rom.downloadUrl).build()
-                httpClient.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) error("HTTP ${response.code}")
-                    val body = response.body
-                    val totalBytes = body.contentLength().takeIf { it > 0 } ?: rom.sizeBytes
+            val request = Request.Builder().url(rom.downloadUrl).build()
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) error("HTTP ${response.code}")
+                val body = response.body
+                val totalBytes = body.contentLength().takeIf { it > 0 } ?: rom.sizeBytes
 
-                    dest.outputStream().buffered(BUFFER_SIZE).use { out ->
-                        body.byteStream().buffered(BUFFER_SIZE).use { input ->
-                            var downloaded = 0L
-                            val buf = ByteArray(BUFFER_SIZE)
-                            var read: Int
-                            while (input.read(buf).also { read = it } != -1) {
-                                out.write(buf, 0, read)
-                                downloaded += read
-                                val progress = DownloadProgress(rom.id, downloaded, totalBytes, ROMDownloadState.DOWNLOADING)
-                                updateProgress(rom.id, downloaded, totalBytes, ROMDownloadState.DOWNLOADING)
-                                onProgress(progress)
-                            }
+                dest.outputStream().buffered(BUFFER_SIZE).use { out ->
+                    body.byteStream().buffered(BUFFER_SIZE).use { input ->
+                        var downloaded = 0L
+                        val buf = ByteArray(BUFFER_SIZE)
+                        var read: Int
+                        while (input.read(buf).also { read = it } != -1) {
+                            out.write(buf, 0, read)
+                            downloaded += read
+                            val progress = DownloadProgress(rom.id, downloaded, totalBytes, ROMDownloadState.DOWNLOADING)
+                            updateProgress(rom.id, downloaded, totalBytes, ROMDownloadState.DOWNLOADING)
+                            onProgress(progress)
                         }
                     }
                 }
-
-                updateProgress(rom.id, rom.sizeBytes, rom.sizeBytes, ROMDownloadState.VERIFYING)
-                if (!verifyFile(dest, rom.sha256)) {
-                    dest.delete()
-                    updateProgress(rom.id, 0L, rom.sizeBytes, ROMDownloadState.CORRUPTED)
-                    error("SHA-256 verification failed for ${rom.id}")
-                }
-
-                updateProgress(rom.id, rom.sizeBytes, rom.sizeBytes, ROMDownloadState.READY)
-                refreshROM(rom.id, dest)
-                dest
             }
+
+            updateProgress(rom.id, rom.sizeBytes, rom.sizeBytes, ROMDownloadState.VERIFYING)
+            if (!verifyFile(dest, rom.sha256)) {
+                dest.delete()
+                updateProgress(rom.id, 0L, rom.sizeBytes, ROMDownloadState.CORRUPTED)
+                error("SHA-256 verification failed for ${rom.id}")
+            }
+
+            updateProgress(rom.id, rom.sizeBytes, rom.sizeBytes, ROMDownloadState.READY)
+            refreshROM(rom.id, dest)
+            dest
         }
+    }
 
     suspend fun delete(rom: ROMImage) = withContext(Dispatchers.IO) {
         File(romsDir, "${rom.id}.vrom").delete()
