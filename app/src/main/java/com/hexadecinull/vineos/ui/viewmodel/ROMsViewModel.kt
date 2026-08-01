@@ -22,6 +22,8 @@ data class ROMsUiState(
 
 @HiltViewModel
 class ROMsViewModel @Inject constructor(private val romRepo: ROMRepository) : ViewModel() {
+    // No grace period on uiState: sources are already-cached hot flows,
+    // so a rebuild on resubscribe is cheap.
     val uiState: StateFlow<ROMsUiState> = combine(
         romRepo.roms,
         romRepo.downloadProgress,
@@ -29,7 +31,7 @@ class ROMsViewModel @Inject constructor(private val romRepo: ROMRepository) : Vi
         ROMsUiState(roms = roms, downloadProgress = progress, isLoading = false)
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
+        started = SharingStarted.WhileSubscribed(),
         initialValue = ROMsUiState(),
     )
 

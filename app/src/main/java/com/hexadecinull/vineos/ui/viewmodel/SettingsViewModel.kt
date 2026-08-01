@@ -14,6 +14,8 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(private val prefs: AppPreferences) : ViewModel() {
+    // No grace period on settings: sources are already-cached hot flows,
+    // so a rebuild on resubscribe is cheap.
     val settings: StateFlow<AppSettings> = combine(
         prefs.dynamicColor,
         prefs.keepScreenOn,
@@ -32,7 +34,7 @@ class SettingsViewModel @Inject constructor(private val prefs: AppPreferences) :
         partial.copy(allowRootInstances = allowRoot)
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
+        started = SharingStarted.WhileSubscribed(),
         initialValue = AppSettings(),
     )
 

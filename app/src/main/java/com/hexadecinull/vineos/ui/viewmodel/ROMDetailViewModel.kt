@@ -25,6 +25,8 @@ data class ROMDetailUiState(
 class ROMDetailViewModel @Inject constructor(private val romRepo: ROMRepository) : ViewModel() {
     private val romIdFlow = MutableStateFlow("")
 
+    // No grace period on uiState: sources are already-cached hot flows, so
+    // a rebuild on resubscribe is cheap.
     val uiState: StateFlow<ROMDetailUiState> = combine(
         romIdFlow,
         romRepo.roms,
@@ -36,7 +38,7 @@ class ROMDetailViewModel @Inject constructor(private val romRepo: ROMRepository)
             progress = progress[romId],
             runMode = rom?.let { AbiCompat.romRunMode(it) } ?: AbiCompat.RunMode.UNAVAILABLE,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ROMDetailUiState())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), ROMDetailUiState())
 
     fun load(id: String) {
         romIdFlow.value = id

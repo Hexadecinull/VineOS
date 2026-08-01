@@ -23,13 +23,15 @@ class InstanceDetailViewModel @Inject constructor(private val instanceRepo: Inst
     private val instanceIdFlow = MutableStateFlow("")
     private val diagnosticsFlow = MutableStateFlow("")
 
+    // No grace period on uiState: sources are already-cached hot flows, so
+    // a rebuild on resubscribe is cheap.
     val uiState: StateFlow<InstanceDetailUiState> = combine(
         instanceIdFlow,
         instanceRepo.observeAll(),
         diagnosticsFlow,
     ) { id, all, diagnostics ->
         InstanceDetailUiState(instance = all.find { it.id == id }, diagnostics = diagnostics)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), InstanceDetailUiState())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), InstanceDetailUiState())
 
     fun load(id: String) {
         instanceIdFlow.value = id
