@@ -10,11 +10,9 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -45,18 +43,14 @@ class HomeViewModelTest {
         Dispatchers.resetMain()
     }
 
-    // backgroundScope keeps a collector alive for the rest of the test;
-    // advanceUntilIdle lets that collector's pending work actually run
-    // before we read .value.
-    private suspend fun TestScope.keepUiStateHot() {
-        backgroundScope.launch { viewModel.uiState.collect {} }
-        advanceUntilIdle()
-    }
+    // uiState.first { predicate } subscribes and suspends until the flow
+    // actually produces a value matching the predicate, rather than reading
+    // .value after a fixed advanceUntilIdle() and hoping enough dispatcher
+    // hops have happened.
 
     @Test
     fun `initial uiState has empty instances and isLoading false`() = runTest(testDispatcher) {
-        keepUiStateHot()
-        val state = viewModel.uiState.value
+        val state = viewModel.uiState.first { !it.isLoading }
         assertThat(state.instances).isEmpty()
         assertThat(state.isLoading).isFalse()
         assertThat(state.error).isNull()
@@ -67,9 +61,8 @@ class HomeViewModelTest {
         val instances = listOf(buildInstance("1"), buildInstance("2"))
         every { instanceRepo.observeAll() } returns flowOf(instances)
         val vm = HomeViewModel(instanceRepo, vmManager)
-        backgroundScope.launch { vm.uiState.collect {} }
-        advanceUntilIdle()
-        assertThat(vm.uiState.value.instances).hasSize(2)
+        val state = vm.uiState.first { it.instances.isNotEmpty() }
+        assertThat(state.instances).hasSize(2)
     }
 
     @Test
@@ -113,9 +106,9 @@ class HomeViewModelTest {
 
     @Test
     fun `clearError resets error state`() = runTest(testDispatcher) {
-        keepUiStateHot()
         viewModel.clearError()
-        assertThat(viewModel.uiState.value.error).isNull()
+        val state = viewModel.uiState.first { !it.isLoading }
+        assertThat(state.error).isNull()
     }
 
     private fun buildInstance(id: String, status: VMStatus = VMStatus.STOPPED) = VMInstance(

@@ -10,11 +10,9 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -44,34 +42,29 @@ class InstanceDetailViewModelTest {
         Dispatchers.resetMain()
     }
 
-    // backgroundScope keeps a collector alive for the rest of the test;
-    // advanceUntilIdle lets its pending work actually run before we read
-    // .value.
-    private suspend fun TestScope.keepHot() {
-        backgroundScope.launch { viewModel.uiState.collect {} }
-        advanceUntilIdle()
-    }
+    // uiState.first { predicate } subscribes and suspends until the flow
+    // actually produces a value matching the predicate, rather than reading
+    // .value after a fixed advanceUntilIdle() and hoping enough dispatcher
+    // hops have happened.
 
     @Test
     fun `initial uiState has no instance until load is called`() = runTest(testDispatcher) {
-        keepHot()
-        assertThat(viewModel.uiState.value.instance).isNull()
+        val state = viewModel.uiState.first()
+        assertThat(state.instance).isNull()
     }
 
     @Test
     fun `load surfaces the matching instance from the repository`() = runTest(testDispatcher) {
-        keepHot()
         viewModel.load("id-1")
-        advanceUntilIdle()
-        assertThat(viewModel.uiState.value.instance?.id).isEqualTo("id-1")
+        val state = viewModel.uiState.first { it.instance != null }
+        assertThat(state.instance?.id).isEqualTo("id-1")
     }
 
     @Test
     fun `load with an unknown id surfaces no instance`() = runTest(testDispatcher) {
-        keepHot()
         viewModel.load("does-not-exist")
-        advanceUntilIdle()
-        assertThat(viewModel.uiState.value.instance).isNull()
+        val state = viewModel.uiState.first()
+        assertThat(state.instance).isNull()
     }
 
     @Test
@@ -109,12 +102,11 @@ class InstanceDetailViewModelTest {
 
     @Test
     fun `refreshDiagnostics surfaces vmManager diagnostics text`() = runTest(testDispatcher) {
-        keepHot()
         viewModel.load("id-1")
         every { vmManager.getDiagnostics("id-1") } returns "mount table: ok"
         viewModel.refreshDiagnostics()
-        advanceUntilIdle()
-        assertThat(viewModel.uiState.value.diagnostics).isEqualTo("mount table: ok")
+        val state = viewModel.uiState.first { it.diagnostics.isNotBlank() }
+        assertThat(state.diagnostics).isEqualTo("mount table: ok")
     }
 
     private fun buildInstance(id: String, status: VMStatus = VMStatus.STOPPED) = VMInstance(

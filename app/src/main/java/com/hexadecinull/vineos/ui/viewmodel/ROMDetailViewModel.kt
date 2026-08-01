@@ -36,7 +36,7 @@ class ROMDetailViewModel @Inject constructor(private val romRepo: ROMRepository)
             progress = progress[romId],
             runMode = rom?.let { AbiCompat.romRunMode(it) } ?: AbiCompat.RunMode.UNAVAILABLE,
         )
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, ROMDetailUiState())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ROMDetailUiState())
 
     fun load(id: String) {
         romIdFlow.value = id

@@ -11,11 +11,9 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -44,26 +42,22 @@ class ROMDetailViewModelTest {
         Dispatchers.resetMain()
     }
 
-    // backgroundScope keeps a collector alive for the rest of the test;
-    // advanceUntilIdle lets its pending work actually run before we read
-    // .value.
-    private suspend fun TestScope.keepHot(vm: ROMDetailViewModel = viewModel) {
-        backgroundScope.launch { vm.uiState.collect {} }
-        advanceUntilIdle()
-    }
+    // uiState.first { predicate } subscribes and suspends until the flow
+    // actually produces a value matching the predicate. Unlike reading
+    // .value after a fixed advanceUntilIdle(), this doesn't depend on
+    // guessing how many dispatcher hops the combine/stateIn chain needs;
+    // it waits for the real answer, however long that takes.
 
     @Test
     fun `initial uiState has no rom until load is called`() = runTest(testDispatcher) {
-        keepHot()
-        assertThat(viewModel.uiState.value.rom).isNull()
+        val state = viewModel.uiState.first()
+        assertThat(state.rom).isNull()
     }
 
     @Test
     fun `load surfaces the matching rom and its run mode`() = runTest(testDispatcher) {
-        keepHot()
         viewModel.load("rom-1")
-        advanceUntilIdle()
-        val state = viewModel.uiState.value
+        val state = viewModel.uiState.first { it.rom != null }
         assertThat(state.rom?.id).isEqualTo("rom-1")
         assertThat(state.runMode).isEqualTo(AbiCompat.RunMode.NATIVE)
     }
@@ -120,10 +114,9 @@ class ROMDetailViewModelTest {
         )
         every { romRepo.downloadProgress } returns flowOf(progress)
         val vm = ROMDetailViewModel(romRepo)
-        keepHot(vm)
         vm.load("rom-1")
-        advanceUntilIdle()
-        assertThat(vm.uiState.value.progress?.state).isEqualTo(ROMDownloadState.DOWNLOADING)
+        val state = vm.uiState.first { it.progress != null }
+        assertThat(state.progress?.state).isEqualTo(ROMDownloadState.DOWNLOADING)
     }
 
     private fun buildRom(id: String, abis: List<String> = listOf(AbiCompat.ARM64_V8A)) = ROMImage(

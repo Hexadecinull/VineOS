@@ -29,7 +29,7 @@ class InstanceDetailViewModel @Inject constructor(private val instanceRepo: Inst
         diagnosticsFlow,
     ) { id, all, diagnostics ->
         InstanceDetailUiState(instance = all.find { it.id == id }, diagnostics = diagnostics)
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, InstanceDetailUiState())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), InstanceDetailUiState())
 
     fun load(id: String) {
         instanceIdFlow.value = id
