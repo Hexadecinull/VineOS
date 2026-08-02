@@ -56,6 +56,7 @@ class ROMDetailViewModelTest {
 
     @Test
     fun `load surfaces the matching rom and its run mode`() = runTest(testDispatcher) {
+        every { romRepo.getRom("rom-1") } returns buildRom("rom-1")
         viewModel.load("rom-1")
         val state = viewModel.uiState.first { it.rom != null }
         assertThat(state.rom?.id).isEqualTo("rom-1")
@@ -113,6 +114,7 @@ class ROMDetailViewModelTest {
             ),
         )
         every { romRepo.downloadProgress } returns flowOf(progress)
+        every { romRepo.getRom("rom-1") } returns buildRom("rom-1")
         val vm = ROMDetailViewModel(romRepo)
         vm.load("rom-1")
         val state = vm.uiState.first { it.progress != null }
