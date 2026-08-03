@@ -15,8 +15,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -44,24 +44,26 @@ class ROMDetailViewModelTest {
         Dispatchers.resetMain()
     }
 
-    // Keeps uiState subscribed and drains pending coroutines until idle.
-    private fun TestScope.keepHotAndSettle(vm: ROMDetailViewModel = viewModel) {
-        backgroundScope.launch { vm.uiState.collect {} }
-        advanceUntilIdle()
+    // Keeps the StateFlow active during testing.
+    private fun TestScope.collectState(vm: ROMDetailViewModel = viewModel) {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            vm.uiState.collect {}
+        }
     }
 
     @Test
     fun `initial uiState has no rom until load is called`() = runTest(testDispatcher) {
-        keepHotAndSettle()
+        collectState()
+        runCurrent()
         assertThat(viewModel.uiState.value.rom).isNull()
     }
 
     @Test
     fun `load surfaces the matching rom and its run mode`() = runTest(testDispatcher) {
         every { romRepo.getRom("rom-1") } returns buildRom("rom-1")
-        keepHotAndSettle()
+        collectState()
         viewModel.load("rom-1")
-        advanceUntilIdle()
+        runCurrent()
         val state = viewModel.uiState.value
         assertThat(state.rom?.id).isEqualTo("rom-1")
         assertThat(state.runMode).isEqualTo(AbiCompat.RunMode.NATIVE)
@@ -71,6 +73,7 @@ class ROMDetailViewModelTest {
     fun `load with an unknown id triggers a manifest refetch`() = runTest(testDispatcher) {
         every { romRepo.getRom("missing") } returns null
         viewModel.load("missing")
+        runCurrent()
         coVerify { romRepo.fetchManifest() }
     }
 
@@ -78,6 +81,7 @@ class ROMDetailViewModelTest {
     fun `load with a known id does not refetch the manifest`() = runTest(testDispatcher) {
         every { romRepo.getRom("rom-1") } returns buildRom("rom-1")
         viewModel.load("rom-1")
+        runCurrent()
         coVerify(exactly = 0) { romRepo.fetchManifest() }
     }
 
@@ -86,6 +90,7 @@ class ROMDetailViewModelTest {
         every { romRepo.getRom("missing") } returns null
         viewModel.load("missing")
         viewModel.download()
+        runCurrent()
         coVerify(exactly = 0) { romRepo.download(any(), any()) }
     }
 
@@ -95,6 +100,7 @@ class ROMDetailViewModelTest {
         every { romRepo.getRom("rom-1") } returns rom
         viewModel.load("rom-1")
         viewModel.download()
+        runCurrent()
         coVerify { romRepo.download(rom, any()) }
     }
 
@@ -104,6 +110,7 @@ class ROMDetailViewModelTest {
         every { romRepo.getRom("rom-1") } returns rom
         viewModel.load("rom-1")
         viewModel.delete()
+        runCurrent()
         coVerify { romRepo.delete(rom) }
     }
 
@@ -120,9 +127,9 @@ class ROMDetailViewModelTest {
         every { romRepo.downloadProgress } returns flowOf(progress)
         every { romRepo.getRom("rom-1") } returns buildRom("rom-1")
         val vm = ROMDetailViewModel(romRepo)
-        keepHotAndSettle(vm)
+        collectState(vm)
         vm.load("rom-1")
-        advanceUntilIdle()
+        runCurrent()
         val state = vm.uiState.value
         assertThat(state.progress?.state).isEqualTo(ROMDownloadState.DOWNLOADING)
     }
