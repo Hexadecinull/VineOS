@@ -44,12 +44,7 @@ class ROMDetailViewModelTest {
         Dispatchers.resetMain()
     }
 
-    // backgroundScope keeps a persistent subscriber alive for the whole
-    // test, since WhileSubscribed only starts the upstream combine() once
-    // something subscribes. advanceUntilIdle() then exhaustively drains
-    // the scheduler (handling however many internal async hops combine()
-    // needs) before we read .value, rather than trusting a single
-    // first{predicate} call to have driven enough scheduling on its own.
+    // Keeps uiState subscribed and drains pending coroutines until idle.
     private fun TestScope.keepHotAndSettle(vm: ROMDetailViewModel = viewModel) {
         backgroundScope.launch { vm.uiState.collect {} }
         advanceUntilIdle()
@@ -64,8 +59,9 @@ class ROMDetailViewModelTest {
     @Test
     fun `load surfaces the matching rom and its run mode`() = runTest(testDispatcher) {
         every { romRepo.getRom("rom-1") } returns buildRom("rom-1")
-        viewModel.load("rom-1")
         keepHotAndSettle()
+        viewModel.load("rom-1")
+        advanceUntilIdle()
         val state = viewModel.uiState.value
         assertThat(state.rom?.id).isEqualTo("rom-1")
         assertThat(state.runMode).isEqualTo(AbiCompat.RunMode.NATIVE)
@@ -124,8 +120,9 @@ class ROMDetailViewModelTest {
         every { romRepo.downloadProgress } returns flowOf(progress)
         every { romRepo.getRom("rom-1") } returns buildRom("rom-1")
         val vm = ROMDetailViewModel(romRepo)
-        vm.load("rom-1")
         keepHotAndSettle(vm)
+        vm.load("rom-1")
+        advanceUntilIdle()
         val state = vm.uiState.value
         assertThat(state.progress?.state).isEqualTo(ROMDownloadState.DOWNLOADING)
     }
