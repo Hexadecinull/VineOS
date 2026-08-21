@@ -61,16 +61,3 @@ jobs:
           name: nightly-${{ steps.meta.outputs.sha }}
           path: VineOS-nightly-*.apk
           retention-days: 7
-
-      - name: Open issue on failure
-        if: failure()
-        uses: actions/github-script@v9
-        with:
-          script: |
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `Nightly build failed (${new Date().toISOString().slice(0,10)})`,
-              body: `Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`,
-              labels: ['bug', 'ci'],
-            });
