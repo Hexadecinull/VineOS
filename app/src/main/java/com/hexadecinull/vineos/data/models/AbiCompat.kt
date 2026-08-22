@@ -13,7 +13,16 @@ object AbiCompat {
 
     enum class RunMode { NATIVE, QEMU, UNAVAILABLE }
 
-    fun hostCanRun(guestAbi: String, hostAbis: List<String> = Build.SUPPORTED_ABIS.toList()): RunMode {
+    // Build.SUPPORTED_ABIS is backed by a real device property; the JVM
+    // unit test stub can leave it null or fail to resolve at all, so the
+    // default is read through this guard instead of inline per call site.
+    private fun currentHostAbis(): List<String> = try {
+        Build.SUPPORTED_ABIS?.toList().orEmpty()
+    } catch (_: Throwable) {
+        emptyList()
+    }
+
+    fun hostCanRun(guestAbi: String, hostAbis: List<String> = currentHostAbis()): RunMode {
         val primary = hostAbis.firstOrNull() ?: return RunMode.UNAVAILABLE
         return when (primary) {
             X86_64 -> when (guestAbi) {
@@ -56,7 +65,7 @@ object AbiCompat {
         }
     }
 
-    fun romRunMode(rom: ROMImage, hostAbis: List<String> = Build.SUPPORTED_ABIS.toList()): RunMode = rom.supportedAbis
+    fun romRunMode(rom: ROMImage, hostAbis: List<String> = currentHostAbis()): RunMode = rom.supportedAbis
         .map { hostCanRun(it, hostAbis) }
         .minByOrNull { it.ordinal }
         ?: RunMode.UNAVAILABLE
