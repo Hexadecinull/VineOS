@@ -40,6 +40,7 @@ class ROMDetailViewModelTest {
         every { romRepo.getRom("id-1") } returns rom1
         every { romRepo.getRom("id-2") } returns rom2
         every { romRepo.getRom("missing") } returns null
+        every { romRepo.getRom("") } returns null
         viewModel = ROMDetailViewModel(romRepo)
     }
 
