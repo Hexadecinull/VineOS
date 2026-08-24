@@ -1,6 +1,6 @@
 [versions]
 # AGP 9.2.0 is the minimum version with compileSdk 37 support for Compose
-agp = "9.3.1"
+agp = "9.3.2"
 kotlin = "2.4.10"
 ksp = "2.3.11"
 compose-bom = "2026.08.00"
