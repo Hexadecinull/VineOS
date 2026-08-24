@@ -1,6 +1,6 @@
 [versions]
 # AGP 9.2.0 is the minimum version with compileSdk 37 support for Compose
-agp = "9.3.1"
+agp = "9.3.2"
 kotlin = "2.4.10"
 ksp = "2.3.11"
 compose-bom = "2026.08.00"
@@ -15,7 +15,7 @@ room = "2.8.4"
 datastore = "1.2.1"
 coroutines = "1.11.0"
 serialization = "1.11.0"
-okhttp = "5.4.0"
+okhttp = "5.5.0"
 # Coil 2.x, legacy io.coil-kt coordinates. Coil 3.x moved to io.coil-kt.coil3
 # with a KMP-first API; migrating is a bigger separate effort.
 coil = "2.7.0"
