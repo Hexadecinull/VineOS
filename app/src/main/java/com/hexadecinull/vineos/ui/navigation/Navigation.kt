@@ -28,6 +28,11 @@ sealed class Screen(val route: String) {
     data object VMDisplay : Screen("vm_display/{instanceId}") {
         fun createRoute(instanceId: String) = "vm_display/$instanceId"
     }
+    data object About : Screen("about")
+    data object Licenses : Screen("licenses")
+    data object LicenseDetail : Screen("license/{libraryIndex}") {
+        fun createRoute(libraryIndex: Int) = "license/$libraryIndex"
+    }
 }
 
 data class BottomNavItem(val screen: Screen, val label: String, val selectedIcon: ImageVector, val unselectedIcon: ImageVector)

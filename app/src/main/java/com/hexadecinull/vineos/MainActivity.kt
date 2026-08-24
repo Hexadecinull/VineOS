@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -31,18 +32,23 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.hexadecinull.vineos.ui.navigation.Screen
 import com.hexadecinull.vineos.ui.navigation.bottomNavItems
+import com.hexadecinull.vineos.ui.screens.AboutScreen
 import com.hexadecinull.vineos.ui.screens.AppSettings
 import com.hexadecinull.vineos.ui.screens.CreateInstanceScreen
 import com.hexadecinull.vineos.ui.screens.HomeScreen
 import com.hexadecinull.vineos.ui.screens.InstanceDetailScreen
+import com.hexadecinull.vineos.ui.screens.LicenseDetailScreen
+import com.hexadecinull.vineos.ui.screens.LicensesScreen
 import com.hexadecinull.vineos.ui.screens.ROMDetailScreen
 import com.hexadecinull.vineos.ui.screens.ROMsScreen
 import com.hexadecinull.vineos.ui.screens.SettingsScreen
 import com.hexadecinull.vineos.ui.screens.VMDisplayScreen
 import com.hexadecinull.vineos.ui.theme.VineOSTheme
+import com.hexadecinull.vineos.ui.viewmodel.AboutViewModel
 import com.hexadecinull.vineos.ui.viewmodel.HomeViewModel
 import com.hexadecinull.vineos.ui.viewmodel.ROMsViewModel
 import com.hexadecinull.vineos.ui.viewmodel.SettingsViewModel
+import com.hexadecinull.vineos.ui.viewmodel.ShizukuViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -83,7 +89,10 @@ fun VineOSApp(settings: AppSettings, onSettingsChange: (AppSettings) -> Unit) {
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.padding(innerPadding),
+            // Each destination owns a Scaffold+TopAppBar that already consumes its own status/nav-bar insets; without consumeWindowInsets those get reserved a second time here, which is the empty gap at the top of every screen
+            modifier = Modifier
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding),
             enterTransition = { fadeIn() + slideInHorizontally { it / 8 } },
             exitTransition = { fadeOut() },
             popEnterTransition = { fadeIn() },
@@ -109,21 +118,60 @@ fun VineOSApp(settings: AppSettings, onSettingsChange: (AppSettings) -> Unit) {
             composable(Screen.ROMs.route) {
                 val vm: ROMsViewModel = hiltViewModel()
                 val uiState by vm.uiState.collectAsStateWithLifecycle()
+                val importError by vm.importError.collectAsStateWithLifecycle()
                 ROMsScreen(
                     roms = uiState.roms,
                     downloadProgress = uiState.downloadProgress,
                     onDownloadROM = vm::download,
                     onDeleteROM = vm::delete,
                     onROMDetail = { navController.navigate(Screen.ROMDetail.createRoute(it.id)) },
+                    onImportRom = vm::importLocalRom,
+                    importError = importError,
+                    onImportErrorShown = vm::clearImportError,
                     isLoading = uiState.isLoading,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
 
             composable(Screen.Settings.route) {
+                val shizukuVm: ShizukuViewModel = hiltViewModel()
+                val shizukuStatus by shizukuVm.status.collectAsStateWithLifecycle()
+                val probeState by shizukuVm.probeState.collectAsStateWithLifecycle()
                 SettingsScreen(
                     settings = settings,
                     onSettingsChange = onSettingsChange,
+                    onAboutClick = { navController.navigate(Screen.About.route) },
+                    shizukuStatus = shizukuStatus,
+                    onRequestShizukuPermission = shizukuVm::requestPermission,
+                    probeState = probeState,
+                    onRunProbe = shizukuVm::runProbe,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+
+            composable(Screen.About.route) {
+                val vm: AboutViewModel = hiltViewModel()
+                AboutScreen(
+                    sections = vm.sections,
+                    onBack = { navController.popBackStack() },
+                    onLicenses = { navController.navigate(Screen.Licenses.route) },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+
+            composable(Screen.Licenses.route) {
+                LicensesScreen(
+                    onBack = { navController.popBackStack() },
+                    onLibraryClick = { navController.navigate(Screen.LicenseDetail.createRoute(it)) },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+
+            composable(Screen.LicenseDetail.route) { back ->
+                val index = back.arguments?.getString("libraryIndex")?.toIntOrNull() ?: return@composable
+                LicenseDetailScreen(
+                    libraryIndex = index,
+                    onBack = { navController.popBackStack() },
                     modifier = Modifier.fillMaxSize(),
                 )
             }

@@ -25,8 +25,7 @@ data class ROMDetailUiState(
 class ROMDetailViewModel @Inject constructor(private val romRepo: ROMRepository) : ViewModel() {
     private val romIdFlow = MutableStateFlow("")
 
-    // No grace period on uiState: sources are already-cached hot flows, so
-    // a rebuild on resubscribe is cheap.
+    // No grace period on uiState: sources are already-cached hot flows, so a rebuild on resubscribe is cheap
     val uiState: StateFlow<ROMDetailUiState> = combine(
         romIdFlow,
         romRepo.roms,

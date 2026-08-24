@@ -83,8 +83,7 @@ fun VineOSTheme(darkTheme: Boolean = isSystemInDarkTheme(), dynamicColor: Boolea
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            // enableEdgeToEdge() in MainActivity already makes the bars
-            // transparent; only the icon appearance needs setting here.
+            // enableEdgeToEdge() in MainActivity already makes the bars transparent, only icon appearance is set here
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = !darkTheme
                 isAppearanceLightNavigationBars = !darkTheme

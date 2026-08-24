@@ -46,7 +46,12 @@ class CreateInstanceViewModel @Inject constructor(
     val instanceName = MutableStateFlow("")
     val selectedRamMb = MutableStateFlow(AppPreferences.DEFAULT_RAM_MB)
     val selectedStorageMb = MutableStateFlow(AppPreferences.DEFAULT_STORAGE_MB)
+    val selectedCpuCores = MutableStateFlow(AppPreferences.DEFAULT_CPU_CORES)
     val selectedEmoji = MutableStateFlow("\uD83D\uDFE2")
+    val selectedRoot = MutableStateFlow(false)
+
+    val allowRootInstances: StateFlow<Boolean> = prefs.allowRootInstances
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     val isFormValid: StateFlow<Boolean> = instanceName
         .map { it.isNotBlank() }
@@ -56,6 +61,7 @@ class CreateInstanceViewModel @Inject constructor(
         viewModelScope.launch {
             selectedRamMb.value = prefs.defaultRamMb.first()
             selectedStorageMb.value = prefs.defaultStorageMb.first()
+            selectedCpuCores.value = prefs.defaultCpuCores.first()
         }
     }
 
@@ -74,6 +80,8 @@ class CreateInstanceViewModel @Inject constructor(
             val name = instanceName.value.trim()
             val ram = selectedRamMb.value
             val storage = selectedStorageMb.value
+            val cpuCores = selectedCpuCores.value
+            val isRooted = allowRootInstances.value && selectedRoot.value
 
             val instancePath = VineRuntime.createInstance(
                 instanceId = "",
@@ -97,8 +105,10 @@ class CreateInstanceViewModel @Inject constructor(
                 storagePath = instancePath,
                 status = VMStatus.STOPPED,
                 ramMb = ram,
+                cpuCores = cpuCores,
                 storageMb = storage,
                 androidVersionDisplay = rom.displayName,
+                isRooted = isRooted,
                 iconEmoji = selectedEmoji.value,
             )
             instanceRepo.save(instance)

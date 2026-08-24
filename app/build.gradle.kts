@@ -1,3 +1,12 @@
+import java.util.Properties
+
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+val hasReleaseSigning = keystorePropertiesFile.exists()
+if (hasReleaseSigning) {
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+}
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -22,9 +31,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            // Matches the host ABIs AbiCompat knows how to run natively or
-            // via QEMU. armeabi is intentionally excluded: no 32-bit-only
-            // ARM devices ship with Android 8+ (minSdk 26) in practice.
+            // Matches the host ABIs AbiCompat knows how to run natively or via QEMU; armeabi is excluded since no 32-bit-only ARM devices ship with Android 8+ (minSdk 26) in practice
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
         }
 
@@ -39,6 +46,17 @@ android {
         }
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -47,6 +65,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            // Without keystore.properties (e.g. a plain local checkout) this produces an unsigned release build rather than failing configuration entirely
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
         debug {
             applicationIdSuffix = ".debug"
@@ -58,13 +80,13 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        // AGP 9's built-in Kotlin reads the Kotlin JVM target from here;
-        // there's no separate kotlinOptions block to set anymore.
+        // AGP 9's built-in Kotlin reads the JVM target from here; there's no separate kotlinOptions block anymore
     }
 
     buildFeatures {
         compose = true
         buildConfig = true
+        aidl = true
     }
 
     externalNativeBuild {
@@ -138,6 +160,8 @@ dependencies {
     implementation(libs.kotlinx.serialization)
     implementation(libs.okhttp)
     implementation(libs.coil.compose)
+    implementation(libs.shizuku.api)
+    implementation(libs.shizuku.provider)
 
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

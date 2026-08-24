@@ -23,8 +23,7 @@ class InstanceDetailViewModel @Inject constructor(private val instanceRepo: Inst
     private val instanceIdFlow = MutableStateFlow("")
     private val diagnosticsFlow = MutableStateFlow("")
 
-    // No grace period on uiState: sources are already-cached hot flows, so
-    // a rebuild on resubscribe is cheap.
+    // No grace period on uiState: sources are already-cached hot flows, so a rebuild on resubscribe is cheap
     val uiState: StateFlow<InstanceDetailUiState> = combine(
         instanceIdFlow,
         instanceRepo.observeAll(),

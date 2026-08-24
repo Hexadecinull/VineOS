@@ -35,8 +35,7 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # ktlint is applied via the org.jlleitschuh.gradle.ktlint plugin in
-      # app/build.gradle.kts. The task is available as :app:ktlintCheck.
+      # ktlint is applied via the org.jlleitschuh.gradle.ktlint plugin in app/build.gradle.kts, available as :app:ktlintCheck
       - name: Run ktlint
         run: ./gradlew :app:ktlintCheck --continue
 
@@ -119,8 +118,7 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      # The NDK version is auto-resolved from app/build.gradle.kts ndkVersion
-      # via the android-actions/setup-android action.
+      # The NDK version is auto-resolved from app/build.gradle.kts ndkVersion via the android-actions/setup-android action
       - name: Set up Android SDK + NDK
         uses: android-actions/setup-android@v4
 

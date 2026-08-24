@@ -6,8 +6,7 @@
 
 namespace vine::qemu {
 
-// NDK packages native binaries as .so files; libqemu_arm.so is a raw executable
-// extracted to the native lib dir by Android at install time.
+// NDK packages native binaries as .so files; libqemu_arm.so is a raw executable extracted to the native lib dir by Android at install time
 std::string qemu_arm_path(const std::string& native_lib_dir) {
     return native_lib_dir + "/libqemu_arm.so";
 }

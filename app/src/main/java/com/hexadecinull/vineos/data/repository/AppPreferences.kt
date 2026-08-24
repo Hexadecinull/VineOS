@@ -27,6 +27,7 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
         val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
         val DEFAULT_RAM_MB = intPreferencesKey("default_ram_mb")
         val DEFAULT_STORAGE_MB = intPreferencesKey("default_storage_mb")
+        val DEFAULT_CPU_CORES = intPreferencesKey("default_cpu_cores")
         val SHOW_TECH_INFO = booleanPreferencesKey("show_tech_info")
         val ALLOW_ROOT = booleanPreferencesKey("allow_root_instances")
     }
@@ -34,6 +35,7 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
     companion object {
         const val DEFAULT_RAM_MB = 1024
         const val DEFAULT_STORAGE_MB = 4096
+        const val DEFAULT_CPU_CORES = 0
     }
 
     val dynamicColor: Flow<Boolean> = store.data
@@ -52,6 +54,10 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
         .catchIO()
         .map { it[Keys.DEFAULT_STORAGE_MB] ?: DEFAULT_STORAGE_MB }
 
+    val defaultCpuCores: Flow<Int> = store.data
+        .catchIO()
+        .map { it[Keys.DEFAULT_CPU_CORES] ?: DEFAULT_CPU_CORES }
+
     val showTechInfo: Flow<Boolean> = store.data
         .catchIO()
         .map { it[Keys.SHOW_TECH_INFO] ?: false }
@@ -67,6 +73,8 @@ class AppPreferences @Inject constructor(@ApplicationContext private val context
     suspend fun setDefaultRamMb(value: Int) = store.edit { it[Keys.DEFAULT_RAM_MB] = value }
 
     suspend fun setDefaultStorageMb(value: Int) = store.edit { it[Keys.DEFAULT_STORAGE_MB] = value }
+
+    suspend fun setDefaultCpuCores(value: Int) = store.edit { it[Keys.DEFAULT_CPU_CORES] = value }
 
     suspend fun setShowTechInfo(value: Boolean) = store.edit { it[Keys.SHOW_TECH_INFO] = value }
 

@@ -26,13 +26,10 @@ int exec_wait(const std::vector<std::string>& args);
 // Fork and exec without waiting. Returns child PID or -1 on failure.
 pid_t exec_async(const std::vector<std::string>& args);
 
-// Send SIGTERM, then SIGKILL after timeout_ms if still alive.
-// Returns true if process exited on SIGTERM.
+// Sends SIGTERM, then SIGKILL after timeout_ms if still alive; returns true if the process exited on SIGTERM
 bool terminate_gracefully(pid_t pid, int timeout_ms = 5000);
 
-// Returns true if the host CPU supports AArch32 execution state.
-// Uses 4 detection layers (abilist32, abilist, /proc/sys/abi/*, cpuinfo).
-// Returns false on arm64-only SoCs, common across a wide range of vendors.
+// True if the host CPU supports AArch32 execution state; checks abilist32, abilist, /proc/sys/abi/*, and cpuinfo, false on the arm64-only SoCs common across many vendors
 bool host_supports_aarch32();
 
 // Returns ABIs from ro.product.cpu.abilist.

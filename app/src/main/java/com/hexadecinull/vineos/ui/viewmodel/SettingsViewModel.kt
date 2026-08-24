@@ -14,8 +14,7 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(private val prefs: AppPreferences) : ViewModel() {
-    // No grace period on settings: sources are already-cached hot flows,
-    // so a rebuild on resubscribe is cheap.
+    // No grace period on settings: sources are already-cached hot flows, so a rebuild on resubscribe is cheap
     val settings: StateFlow<AppSettings> = combine(
         prefs.dynamicColor,
         prefs.keepScreenOn,
@@ -32,6 +31,8 @@ class SettingsViewModel @Inject constructor(private val prefs: AppPreferences) :
         )
     }.combine(prefs.allowRootInstances) { partial, allowRoot ->
         partial.copy(allowRootInstances = allowRoot)
+    }.combine(prefs.defaultCpuCores) { partial, cpuCores ->
+        partial.copy(defaultCpuCores = cpuCores)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(),
@@ -45,6 +46,7 @@ class SettingsViewModel @Inject constructor(private val prefs: AppPreferences) :
             if (newSettings.keepScreenOn != current.keepScreenOn) prefs.setKeepScreenOn(newSettings.keepScreenOn)
             if (newSettings.defaultRamMb != current.defaultRamMb) prefs.setDefaultRamMb(newSettings.defaultRamMb)
             if (newSettings.defaultStorageMb != current.defaultStorageMb) prefs.setDefaultStorageMb(newSettings.defaultStorageMb)
+            if (newSettings.defaultCpuCores != current.defaultCpuCores) prefs.setDefaultCpuCores(newSettings.defaultCpuCores)
             if (newSettings.showTechnicalInfo != current.showTechnicalInfo) prefs.setShowTechInfo(newSettings.showTechnicalInfo)
             if (newSettings.allowRootInstances != current.allowRootInstances) prefs.setAllowRootInstances(newSettings.allowRootInstances)
         }

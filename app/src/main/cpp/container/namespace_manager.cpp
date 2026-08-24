@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <sys/sysmacros.h>
+#include <sys/resource.h>
 #include <linux/loop.h>
 #include <unordered_map>
 #include <sys/syscall.h>
@@ -30,7 +31,8 @@ Container::~Container() {
 
 Container::Container(Container&& o) noexcept
     : config_(std::move(o.config_)), status_(o.status_),
-      init_pid_(o.init_pid_), framebuffer_fd_(o.framebuffer_fd_) {
+      init_pid_(o.init_pid_), framebuffer_fd_(o.framebuffer_fd_),
+      cgroup_paths_(std::move(o.cgroup_paths_)) {
     o.status_ = ContainerStatus::STOPPED;
     o.init_pid_ = -1;
     o.framebuffer_fd_ = -1;
@@ -42,6 +44,7 @@ Container& Container::operator=(Container&& o) noexcept {
         status_ = o.status_;
         init_pid_ = o.init_pid_;
         framebuffer_fd_ = o.framebuffer_fd_;
+        cgroup_paths_ = std::move(o.cgroup_paths_);
         o.status_ = ContainerStatus::STOPPED;
         o.init_pid_ = -1;
         o.framebuffer_fd_ = -1;
@@ -68,6 +71,10 @@ bool Container::start() {
 
     if (!launch_init()) { teardown_mounts(); status_ = ContainerStatus::ERROR; return false; }
 
+    if (!setup_resource_limits()) {
+        VINE_LOGW("Resource limits not applied for %s (host cgroups not writable?)", config_.instance_id.c_str());
+    }
+
     VINE_LOGI("Container %s started, init PID=%d", config_.instance_id.c_str(), init_pid_);
     status_ = ContainerStatus::RUNNING;
     return true;
@@ -78,6 +85,7 @@ void Container::stop(int timeout_ms) {
         terminate_gracefully(init_pid_, timeout_ms);
         init_pid_ = -1;
     }
+    teardown_cgroups();
     teardown_mounts();
     if (framebuffer_fd_ >= 0) { close(framebuffer_fd_); framebuffer_fd_ = -1; }
     status_ = ContainerStatus::STOPPED;
@@ -89,6 +97,7 @@ void Container::kill_now() {
         waitpid(init_pid_, nullptr, 0);
         init_pid_ = -1;
     }
+    teardown_cgroups();
     teardown_mounts();
     status_ = ContainerStatus::STOPPED;
 }
@@ -133,6 +142,7 @@ bool Container::mount_rootfs() {
 
 bool Container::setup_bind_mounts() {
     const std::string root = config_.rootfs_mount_path;
+    const bool cgroup_v2 = path_exists("/sys/fs/cgroup/cgroup.controllers");
 
     struct MountEntry { const char* src; const char* suffix; const char* fs; unsigned long flags; const char* data; };
     const MountEntry entries[] = {
@@ -142,7 +152,8 @@ bool Container::setup_bind_mounts() {
         { "devpts",  "/dev/pts",     "devpts",  MS_NOEXEC|MS_NOSUID,           "newinstance,ptmxmode=0666,mode=0620" },
         { "tmpfs",   "/dev/shm",     "tmpfs",   MS_NOSUID|MS_NODEV,            "size=65536k" },
         { "tmpfs",   "/tmp",         "tmpfs",   MS_NOSUID|MS_NODEV,            "size=32768k,mode=1777" },
-        { "cgroup",  "/sys/fs/cgroup", "cgroup", MS_NODEV|MS_NOEXEC|MS_NOSUID, "all" },
+        // cgroup v1 hosts need the "all" combined-hierarchy mount; v2 hosts have a single unified cgroup2 fs and reject that option
+        { cgroup_v2 ? "cgroup2" : "cgroup", "/sys/fs/cgroup", cgroup_v2 ? "cgroup2" : "cgroup", MS_NODEV|MS_NOEXEC|MS_NOSUID, cgroup_v2 ? nullptr : "all" },
     };
 
     for (const auto& e : entries) {
@@ -158,6 +169,18 @@ bool Container::setup_bind_mounts() {
     if (bfd >= 0) close(bfd);
     if (mount("/dev/binder", guest_binder.c_str(), nullptr, MS_BIND, nullptr) != 0) {
         VINE_LOGW("bind-mount /dev/binder: %s", strerror(errno));
+    }
+
+    // /dev/ashmem was dropped from many post-Android-10 GKI host kernels; old guests that call real ashmem ioctls will fail hard without it, so this is best-effort and silently skipped if the host doesn't have it
+    if (path_exists("/dev/ashmem")) {
+        std::string guest_ashmem = root + "/dev/ashmem";
+        int afd = open(guest_ashmem.c_str(), O_CREAT | O_WRONLY | O_CLOEXEC, 0600);
+        if (afd >= 0) close(afd);
+        if (mount("/dev/ashmem", guest_ashmem.c_str(), nullptr, MS_BIND, nullptr) != 0) {
+            VINE_LOGW("bind-mount /dev/ashmem: %s", strerror(errno));
+        }
+    } else {
+        VINE_LOGW("host has no /dev/ashmem; guests that don't use the memfd-based ashmem shim will likely fail");
     }
     return true;
 }
@@ -210,8 +233,7 @@ bool Container::setup_binfmt_misc() {
         }
     }
 
-    // 'F' flag: kernel opens the interpreter fd at registration time so it
-    // works after pivot_root changes the filesystem root.
+    // 'F' flag: kernel opens the interpreter fd at registration time so it works after pivot_root changes the filesystem root
     const std::string rule =
         ":arm:M::"
         "\\x7fELF\\x01\\x01\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x02\\x00\\x28\\x00"
@@ -235,10 +257,17 @@ bool Container::launch_init() {
         return false;
     }
 
+    // Only pass androidboot.hardware if the ROM actually ships a matching init.<hw>.rc; otherwise it's a dangling import that init.rc silently skips, so there's no point pretending it does something
+    const bool has_hw_rc = path_exists(config_.rootfs_mount_path + "/init.vine.rc");
+
     pid_t pid = fork();
     if (pid < 0) { VINE_LOGE_ERRNO("fork"); return false; }
 
     if (pid == 0) {
+        // binder_linux warns/rejects transactions from threads with a negative nice value unless RLIMIT_NICE allows raising priority back to 0; Anbox and Waydroid both set this before exec
+        struct rlimit rl{20, 20};
+        setrlimit(RLIMIT_NICE, &rl);
+
         int ns_flags = CLONE_NEWPID | CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWIPC;
         if (unshare(ns_flags) != 0) { VINE_LOGE_ERRNO("unshare"); _exit(1); }
 
@@ -262,11 +291,22 @@ bool Container::launch_init() {
         }
         chdir("/");
 
-        execl("/init", "/init",
-              "androidboot.hardware=vine",
-              "androidboot.selinux=permissive",
-              (char*)nullptr);
-        VINE_LOGE_ERRNO("execl(/init)");
+        // A minimal, guest-appropriate environment; execl would otherwise inherit VineOS's own app process environment, which is meaningless (and potentially confusing) inside the guest
+        const char* envp[] = {
+            "PATH=/system/bin:/system/xbin:/vendor/bin",
+            "ANDROID_ROOT=/system",
+            "ANDROID_DATA=/data",
+            nullptr,
+        };
+
+        if (has_hw_rc) {
+            const char* argv[] = { "/init", "androidboot.hardware=vine", "androidboot.selinux=permissive", nullptr };
+            execve("/init", const_cast<char* const*>(argv), const_cast<char* const*>(envp));
+        } else {
+            const char* argv[] = { "/init", "androidboot.selinux=permissive", nullptr };
+            execve("/init", const_cast<char* const*>(argv), const_cast<char* const*>(envp));
+        }
+        VINE_LOGE_ERRNO("execve(/init)");
         _exit(1);
     }
 
@@ -287,12 +327,79 @@ void Container::teardown_mounts() {
     umount2(root.c_str(), MNT_DETACH);
 }
 
+// Host-side cgroup limiting the container's own resource usage from outside, separate from the guest-facing /sys/fs/cgroup bind mount the guest's own Android uses internally
+bool Container::setup_resource_limits() {
+    if (init_pid_ <= 0) return false;
+    if (config_.ram_mb <= 0 && config_.cpu_cores <= 0) return true;
+
+    const std::string pid_str = std::to_string(init_pid_);
+    const std::string tag = "vineos-" + config_.instance_id.substr(0, 8);
+    bool applied = false;
+
+    if (path_exists("/sys/fs/cgroup/cgroup.controllers")) {
+        const std::string cg = "/sys/fs/cgroup/" + tag;
+        if (!mkdirs(cg)) {
+            VINE_LOGW("mkdir(%s) failed, resource limits skipped", cg.c_str());
+            return false;
+        }
+        if (config_.ram_mb > 0) {
+            write_file(cg + "/memory.max", std::to_string((long)config_.ram_mb * 1024 * 1024));
+        }
+        if (config_.cpu_cores > 0) {
+            const long period_us = 100000;
+            write_file(cg + "/cpu.max", std::to_string(period_us * config_.cpu_cores) + " " + std::to_string(period_us));
+        }
+        applied = write_file(cg + "/cgroup.procs", pid_str);
+        if (applied) cgroup_paths_.push_back(cg);
+        return applied;
+    }
+
+    // cgroup v1: memory and cpu are typically separate controller hierarchies, each needs its own leaf dir
+    if (config_.ram_mb > 0 && path_exists("/sys/fs/cgroup/memory")) {
+        const std::string cg = "/sys/fs/cgroup/memory/" + tag;
+        if (mkdirs(cg) &&
+            write_file(cg + "/memory.limit_in_bytes", std::to_string((long)config_.ram_mb * 1024 * 1024)) &&
+            write_file(cg + "/tasks", pid_str)) {
+            cgroup_paths_.push_back(cg);
+            applied = true;
+        } else {
+            VINE_LOGW("cgroup v1 memory limit not applied for %s", config_.instance_id.c_str());
+        }
+    }
+    if (config_.cpu_cores > 0 && path_exists("/sys/fs/cgroup/cpu")) {
+        const std::string cg = "/sys/fs/cgroup/cpu/" + tag;
+        const long period_us = 100000;
+        if (mkdirs(cg) &&
+            write_file(cg + "/cpu.cfs_period_us", std::to_string(period_us)) &&
+            write_file(cg + "/cpu.cfs_quota_us", std::to_string(period_us * config_.cpu_cores)) &&
+            write_file(cg + "/tasks", pid_str)) {
+            cgroup_paths_.push_back(cg);
+            applied = true;
+        } else {
+            VINE_LOGW("cgroup v1 CPU limit not applied for %s", config_.instance_id.c_str());
+        }
+    }
+    return applied;
+}
+
+void Container::teardown_cgroups() {
+    for (const auto& cg : cgroup_paths_) {
+        if (rmdir(cg.c_str()) != 0) {
+            VINE_LOGW("rmdir(%s): %s", cg.c_str(), strerror(errno));
+        }
+    }
+    cgroup_paths_.clear();
+}
+
 std::string Container::diagnostics() const {
     std::string out = "=== VineOS Diagnostics ===\n";
     out += "Instance : " + config_.instance_id + "\n";
     out += "Status   : " + std::to_string((int)status_) + "\n";
     out += "Init PID : " + std::to_string(init_pid_) + "\n";
     out += "QEMU     : " + std::string(config_.needs_qemu_32bit ? "yes" : "no") + "\n";
+    out += "RAM cap  : " + std::string(config_.ram_mb > 0 ? std::to_string(config_.ram_mb) + " MB" : "unlimited") + "\n";
+    out += "CPU cap  : " + std::string(config_.cpu_cores > 0 ? std::to_string(config_.cpu_cores) + " cores" : "unlimited") + "\n";
+    out += "Cgroups  : " + std::to_string(cgroup_paths_.size()) + " applied\n";
     if (init_pid_ > 0) {
         auto s = read_file("/proc/" + std::to_string(init_pid_) + "/status");
         if (s) out += "\n--- proc/status ---\n" + *s;

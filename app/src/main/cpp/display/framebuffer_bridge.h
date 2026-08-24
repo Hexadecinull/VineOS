@@ -75,12 +75,7 @@ private:
     void munmap_fb();
     bool blit_to_window();
 
-    // AChoreographer frame callback: draws one frame, then re-arms itself
-    // for the next vsync. Runs on render_thread_.
-    // Signature matches AChoreographer_frameCallback (the pre-API-29 form,
-    // which uses `long` for the timestamp, not int64_t). We deliberately use
-    // this deprecated-but-still-functional variant since minSdk is 26 and
-    // AChoreographer_postFrameCallback64 requires API 29.
+    // AChoreographer frame callback (draws one frame, re-arms for next vsync, runs on render_thread_); uses the pre-API-29 `long` timestamp signature since minSdk 26 predates AChoreographer_postFrameCallback64
     static void on_vsync(long frame_time_nanos, void* data);
 };
 

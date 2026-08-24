@@ -1,19 +1,6 @@
 name: Release
 
-#  MANUAL DEPLOYMENT ONLY
-#
-#  This workflow is intentionally triggered only via workflow_dispatch (the
-#  "Run workflow" button on the Actions tab). Automatic tag-triggered releases
-#  were removed because:
-#    - We need to verify the build works and has acceptable quality before shipping
-#    - Pre-release versions (alpha/beta) should not auto-publish
-#    - The project is pre-1.0; releases require conscious human sign-off
-#
-#  How to release:
-#    1. Make sure CI is green on main
-#    2. Create and push a version tag: git tag v0.2.0 && git push origin v0.2.0
-#    3. Go to Actions → Release → Run workflow → fill in the version tag
-#    4. Review the built APK artifact before the release goes live
+# MANUAL DEPLOYMENT ONLY, triggered only via workflow_dispatch and never on tag push since the project is pre-1.0 and releases need human sign-off; to release, push a version tag then Actions → Release → Run workflow → fill in the same tag
 
 on:
   workflow_dispatch:
@@ -37,7 +24,6 @@ permissions:
   contents: write
 
 jobs:
-  # Validate inputs
   validate:
     name: Validate release inputs
     runs-on: ubuntu-latest
@@ -51,9 +37,8 @@ jobs:
           fi
           echo "Version tag '$TAG' is valid."
 
-  # Build signed release APK
   build-release:
-    name: Build & sign release APK
+    name: Build & sign release + debug APKs
     runs-on: ubuntu-latest
     needs: validate
     steps:
@@ -74,14 +59,11 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # Decode the base64-encoded keystore from GitHub Secrets.
-      # To set this up:
-      #   base64 -w 0 vineos-release.jks > keystore.b64
-      #   Add the contents of keystore.b64 as the RELEASE_KEYSTORE_BASE64 secret
+      # See docs/BUILDING.md "Release signing" for how to generate RELEASE_KEYSTORE_BASE64 and the matching password/alias secrets.
       - name: Decode signing keystore
         run: |
           echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
-          ls -lah keystore.jks  # Verify it decoded to a non-zero file
+          if [ ! -s keystore.jks ]; then echo "ERROR: keystore.jks is empty, check the RELEASE_KEYSTORE_BASE64 secret" && exit 1; fi
 
       - name: Write keystore.properties
         run: |
@@ -93,19 +75,15 @@ jobs:
           EOF
 
       - name: Run unit tests (safety gate)
-        run: ./gradlew :app:testReleaseUnitTest
+        run: ./gradlew :app:testDebugUnitTest :app:testReleaseUnitTest
 
-      - name: Build release APK
-        run: ./gradlew :app:assembleRelease
+      - name: Build release + debug APKs
+        run: ./gradlew :app:assembleRelease :app:assembleDebug
 
-      - name: Verify APK was signed
+      - name: Verify release APK was signed
         run: |
           APK="app/build/outputs/apk/release/app-release.apk"
-          if [ ! -f "$APK" ]; then
-            echo "ERROR: Release APK not found at $APK"
-            exit 1
-          fi
-          # Use apksigner from Android build-tools to verify signature
+          if [ ! -f "$APK" ]; then echo "ERROR: Release APK not found at $APK" && exit 1; fi
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)/apksigner"
           if [ -f "$APKSIGNER" ]; then
             "$APKSIGNER" verify --verbose "$APK" && echo "APK signature verified."
@@ -113,21 +91,23 @@ jobs:
             echo "apksigner not found, skipping signature verification"
           fi
 
-      - name: Rename APK with version tag
+      - name: Remove keystore files
+        if: always()
+        run: rm -f keystore.jks keystore.properties
+
+      - name: Rename APKs with version tag
         run: |
           VERSION="${{ github.event.inputs.version_tag }}"
-          cp app/build/outputs/apk/release/app-release.apk \
-             "VineOS-${VERSION}.apk"
-          echo "APK_NAME=VineOS-${VERSION}.apk" >> "$GITHUB_ENV"
+          cp app/build/outputs/apk/release/app-release.apk "VineOS-${VERSION}.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "VineOS-${VERSION}-debug.apk"
 
-      - name: Upload signed APK artifact
+      - name: Upload signed APK artifacts
         uses: actions/upload-artifact@v7
         with:
           name: release-apk-${{ github.event.inputs.version_tag }}
           path: VineOS-*.apk
           retention-days: 90
 
-  # Create GitHub Release
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
@@ -137,7 +117,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download signed APK
+      - name: Download signed APKs
         uses: actions/download-artifact@v8
         with:
           name: release-apk-${{ github.event.inputs.version_tag }}
@@ -152,7 +132,7 @@ jobs:
         env:
           OUTPUT: CHANGELOG_CURRENT.md
           GITHUB_REPO: ${{ github.repository }}
-        continue-on-error: true  # Non-fatal: release proceeds even without cliff.toml
+        continue-on-error: true
 
       - name: Compose release body
         id: release_body
@@ -162,6 +142,8 @@ jobs:
             echo "## VineOS ${{ github.event.inputs.version_tag }}"
             echo ""
             echo "$NOTES"
+            echo ""
+            echo "The \`-debug\` APK is a debuggable build meant for troubleshooting only, install the regular one unless you specifically need it."
             echo ""
             if [ -f CHANGELOG_CURRENT.md ]; then
               echo "---"
@@ -180,15 +162,3 @@ jobs:
           files: release/VineOS-*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # Cleanup secrets
-  cleanup:
-    name: Clean up secrets from runner
-    runs-on: ubuntu-latest
-    needs: build-release
-    if: always()
-    steps:
-      - name: Remove keystore files
-        run: |
-          rm -f keystore.jks keystore.properties
-          echo "Keystore files cleaned up."

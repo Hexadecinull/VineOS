@@ -19,6 +19,7 @@ okhttp = "5.4.0"
 # Coil 2.x, legacy io.coil-kt coordinates. Coil 3.x moved to io.coil-kt.coil3
 # with a KMP-first API; migrating is a bigger separate effort.
 coil = "2.7.0"
+shizuku = "13.1.5"
 # ktlint Gradle plugin, 14.x adds Gradle 9.1 and built-in Kotlin support
 ktlint = "14.2.0"
 # Testing
@@ -81,6 +82,10 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 
 # Image loading
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+
+# Shizuku, non-root privilege elevation via ADB/wireless debugging or root
+shizuku-api = { group = "dev.rikka.shizuku", name = "api", version.ref = "shizuku" }
+shizuku-provider = { group = "dev.rikka.shizuku", name = "provider", version.ref = "shizuku" }
 
 # Testing, unit
 junit = { group = "junit", name = "junit", version.ref = "junit" }

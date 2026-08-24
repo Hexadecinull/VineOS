@@ -38,9 +38,7 @@ bool UInputBridge::setup() {
         VINE_LOGE_ERRNO("uinput EV setup"); teardown(); return false;
     }
 
-    // Every key android_to_linux_keycode() can produce, plus BTN_TOUCH for
-    // the touchscreen itself. uinput silently drops events for key codes
-    // that weren't declared here first.
+    // Every key android_to_linux_keycode() can produce, plus BTN_TOUCH for the touchscreen; uinput silently drops events for codes not declared here first
     static const uint16_t kKeyBits[] = {
         BTN_TOUCH, KEY_HOME, KEY_BACK, KEY_VOLUMEUP, KEY_VOLUMEDOWN, KEY_POWER,
         KEY_CAMERA, KEY_SPACE, KEY_ENTER, KEY_BACKSPACE, KEY_MENU, KEY_MUTE,
@@ -142,9 +140,7 @@ void UInputBridge::send_touch(int action, float x, float y) {
     sync();
 }
 
-// A point is a new contact in its slot when we haven't assigned it a
-// tracking ID yet; it's a lift when it goes inactive while we still have
-// one on file. BTN_TOUCH reflects whether any slot is still down.
+// A point is a new contact when its slot has no tracking ID yet, and a lift when it goes inactive while one is on file; BTN_TOUCH reflects whether any slot is still down
 void UInputBridge::send_multitouch(const TouchPoint* points, int count) {
     if (!is_ready() || points == nullptr || count <= 0) return;
 
@@ -186,10 +182,7 @@ void UInputBridge::send_key(int linux_keycode, bool down) {
 }
 
 int UInputBridge::android_to_linux_keycode(int android_keycode) {
-    // KEYCODE_A..KEYCODE_Z (29-54) are alphabetically sequential in Android,
-    // but Linux's KEY_A..KEY_Z follow physical QWERTY position (KEY_Q=16,
-    // KEY_W=17, KEY_E=18...), so this needs an explicit table, not a
-    // constant offset.
+    // KEYCODE_A..Z (29-54) are alphabetically sequential in Android, but Linux's KEY_A..Z follow physical QWERTY position, so this needs an explicit table, not a constant offset
     static const uint16_t kLetterKeys[26] = {
         KEY_A, KEY_B, KEY_C, KEY_D, KEY_E, KEY_F, KEY_G, KEY_H, KEY_I, KEY_J,
         KEY_K, KEY_L, KEY_M, KEY_N, KEY_O, KEY_P, KEY_Q, KEY_R, KEY_S, KEY_T,

@@ -148,8 +148,7 @@ class AbiCompatTest {
 
     @Test
     fun `only the primary host abi is consulted`() {
-        // A secondary ABI in the host list shouldn't change the result;
-        // Build.SUPPORTED_ABIS is ordered by preference, so only [0] counts.
+        // A secondary ABI in the host list shouldn't change the result; Build.SUPPORTED_ABIS is ordered by preference, so only [0] counts
         val mode = AbiCompat.hostCanRun(
             AbiCompat.ARM64_V8A,
             listOf(AbiCompat.ARMEABI_V7A, AbiCompat.ARM64_V8A),

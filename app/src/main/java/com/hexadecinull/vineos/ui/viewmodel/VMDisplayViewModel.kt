@@ -78,10 +78,7 @@ class VMDisplayViewModel @Inject constructor(private val vmManager: VineVMManage
         val id = instanceId ?: return null
         val fd = vmManager.getFramebufferFd(id)
         if (fd < 0) return null
-        // The handle is the one stored in VineVMManager's handles map;
-        // we retrieve it indirectly via getFramebufferFd (which opens the bridge
-        // and returns the fd only when a valid handle exists). We cache the fd's
-        // associated handle via a new accessor exposed on VineVMManager.
+        // getFramebufferFd() confirms a valid handle exists before we fetch and cache it via getHandle()
         instanceHandle = vmManager.getHandle(id) ?: return null
         return instanceHandle
     }

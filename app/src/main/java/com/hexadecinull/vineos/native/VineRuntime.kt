@@ -13,7 +13,7 @@ object VineRuntime {
 
     external fun createInstance(instanceId: String, romImagePath: String, storageMb: Int): String?
 
-    external fun startInstance(instanceId: String, instancePath: String, ramMb: Int): Long
+    external fun startInstance(instanceId: String, instancePath: String, ramMb: Int, cpuCores: Int): Long
 
     external fun stopInstance(instanceHandle: Long)
 

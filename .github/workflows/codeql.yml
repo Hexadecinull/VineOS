@@ -48,14 +48,7 @@ jobs:
               - app/build/**
               - app/schemas/**
 
-      # --no-build-cache forces the compiler to actually run instead of
-      # replaying FROM-CACHE task outputs. CodeQL's extractor works by
-      # observing compiler invocations during the build; a cache hit skips
-      # the compiler entirely, which is what produces "CodeQL detected code
-      # written in Java/Kotlin but could not process any of it" even though
-      # the build itself succeeds. See
-      # https://gh.io/troubleshooting-code-scanning/no-source-code-seen-during-build
-      # (reason 4, "cached components not detected").
+      # --no-build-cache forces the compiler to actually run instead of replaying FROM-CACHE task outputs, since CodeQL's extractor works by observing compiler invocations during the build, see https://gh.io/troubleshooting-code-scanning/no-source-code-seen-during-build (reason 4, "cached components not detected")
       - name: Build project for CodeQL
         run: ./gradlew :app:assembleDebug --no-build-cache
 

@@ -1,6 +1,9 @@
 package com.hexadecinull.vineos.ui.screens
 
+import android.net.Uri
 import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -8,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,20 +32,40 @@ fun ROMsScreen(
     onDownloadROM: (ROMImage) -> Unit,
     onDeleteROM: (ROMImage) -> Unit,
     onROMDetail: (ROMImage) -> Unit,
+    onImportRom: (Uri) -> Unit,
+    importError: String?,
+    onImportErrorShown: () -> Unit,
     isLoading: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val hostAbis = remember { Build.SUPPORTED_ABIS.toList() }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val pickRomLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(onImportRom)
+    }
+
+    LaunchedEffect(importError) {
+        importError?.let {
+            snackbarHostState.showSnackbar(it)
+            onImportErrorShown()
+        }
+    }
 
     Scaffold(
         topBar = {
             LargeTopAppBar(
                 title = { Text("ROMs") },
+                actions = {
+                    IconButton(onClick = { pickRomLauncher.launch(arrayOf("*/*")) }) {
+                        Icon(Icons.Outlined.FileOpen, contentDescription = "Import a .vrom file from storage")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                 )
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = modifier
     ) { innerPadding ->
         if (isLoading) {
@@ -149,6 +173,7 @@ private fun ROMCard(
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         rom.supportedAbis.forEach { abi -> ROMFeatureChip(label = abi) }
                         ROMSizeChip(bytes = rom.sizeBytes)
+                        if (rom.isLocal) ROMLocalChip()
                         when (runMode) {
                             AbiCompat.RunMode.QEMU        -> ROMQemuChip()
                             AbiCompat.RunMode.UNAVAILABLE -> ROMUnavailableChip()
@@ -242,6 +267,21 @@ private fun ROMSizeChip(bytes: Long) {
 }
 
 @Composable
+private fun ROMLocalChip() {
+    Surface(
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        shape = RoundedCornerShape(6.dp)
+    ) {
+        Text(
+            text = "Local",
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onTertiaryContainer,
+        )
+    }
+}
+
+@Composable
 private fun ROMQemuChip() {
     Surface(
         color = MaterialTheme.colorScheme.tertiaryContainer,
@@ -292,7 +332,7 @@ private fun ROMsEmptyState(modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "Check your internet connection. VineOS fetches the ROM list from its servers.",
+            "Check your internet connection, or import a .vrom file from storage using the button above.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

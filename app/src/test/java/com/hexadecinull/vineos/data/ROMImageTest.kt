@@ -61,8 +61,7 @@ class ROMImageTest {
             totalBytes = 1_000_000L,
             state = ROMDownloadState.DOWNLOADING,
         )
-        // We don't clamp in the model, but this test documents expected behavior:
-        // callers should not send bytesDownloaded > totalBytes
+        // We don't clamp in the model, but callers should not send bytesDownloaded > totalBytes
         assertThat(progress.progressFraction).isGreaterThan(0f)
     }
 

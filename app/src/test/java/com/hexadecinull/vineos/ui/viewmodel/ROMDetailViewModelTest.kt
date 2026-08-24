@@ -49,10 +49,7 @@ class ROMDetailViewModelTest {
         Dispatchers.resetMain()
     }
 
-    // AbiCompat.romRunMode falls back to Build.SUPPORTED_ABIS when no host
-    // list is passed in; that field isn't populated under the JVM unit test
-    // stub, so every rom here resolves to UNAVAILABLE regardless of its own
-    // supportedAbis. See AbiCompatTest for the actual compatibility matrix.
+    // AbiCompat.romRunMode falls back to Build.SUPPORTED_ABIS, unpopulated under the JVM test stub, so every rom here resolves to UNAVAILABLE regardless of its own supportedAbis; see AbiCompatTest for the real compatibility matrix
 
     @Test
     fun `initial uiState has no rom until load is called`() = runTest(testDispatcher) {

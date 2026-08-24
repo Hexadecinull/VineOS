@@ -78,6 +78,7 @@ You get a real second phone inside your phone.
 - 🔒 **Isolated**: PID, mount, UTS, and IPC namespace separation
 - 🌱 **Multi-instance**: run multiple independent VMs simultaneously
 - 🔧 **Root support**: optional Magisk/root inside instances (requires rooted host)
+- ⚡ **Shizuku**: optional, no-root privilege probe via ADB/Wireless Debugging (see `docs/NOROOT_RESEARCH.md`)
 - 📱 **minSdk 26, targetSdk 37**: supports Android 8.0 through Android 17
 
 ---
@@ -134,7 +135,7 @@ instructions, usage guide, contributing guide, and policies, lives in
 ## Roadmap
 
 ### Phase 1: Foundation *(current)*
-- [x] Linux namespace container runtime (`unshare`, `pivot_root`, `execl`)
+- [x] Linux namespace container runtime (`unshare`, `pivot_root`, `execve`)
 - [x] QEMU binfmt_misc integration for 32-bit support (4-layer AArch32 detection)
 - [x] JNI bridge with `FramebufferBridge` + `UInputBridge` wiring
 - [x] Material You UI: Home, ROMs, Settings, and detail/create-instance screens
@@ -158,6 +159,7 @@ instructions, usage guide, contributing guide, and policies, lives in
 - [ ] ROM CDN + in-app download UI completion
 
 ### Phase 4: No-root Path
+- [x] Shizuku integration to probe whether ADB-shell privilege clears `unshare`/`mount` on a given device (Settings → Shizuku)
 - [ ] `proot` fallback for non-rooted devices
 - [ ] Android Virtualization Framework (AVF) backend (Android 13+)
 

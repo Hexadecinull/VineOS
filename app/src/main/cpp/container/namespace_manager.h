@@ -16,6 +16,7 @@ struct ContainerConfig {
     std::string rootfs_image_path;  // Path to the .vrom image file
     std::string rootfs_mount_path;  // Where the rootfs is loop-mounted
     int ram_mb = 1024;
+    int cpu_cores = 0;               // 0 = unlimited, otherwise a cgroup CPU quota
     bool needs_qemu_32bit = false;  // True when host lacks AArch32 support
     std::string qemu_arm_path;      // Path to the static qemu-arm binary
 };
@@ -28,10 +29,7 @@ enum class ContainerStatus {
     PAUSED  = 4,
 };
 
-// Manages the lifecycle of a single VineOS guest container: Linux namespace
-// setup, rootfs mounting, QEMU binfmt_misc registration on arm64-only hosts,
-// and launching Android init as PID 1. Not thread-safe; call from a single
-// background thread (VineService's dispatcher).
+// Manages the lifecycle of a single VineOS guest container: namespace setup, rootfs mounting, QEMU binfmt_misc registration on arm64-only hosts, and launching Android init as PID 1; not thread-safe, call from a single background thread (VineService's dispatcher)
 class Container {
 public:
     explicit Container(ContainerConfig config);
@@ -42,9 +40,7 @@ public:
     Container(Container&&) noexcept;
     Container& operator=(Container&&) noexcept;
 
-    // Loop-mounts the rootfs, sets up bind mounts and namespaces, registers
-    // binfmt_misc if needed, and execs Android init as PID 1. Returns true
-    // once init has launched; does not block until the guest finishes boot.
+    // Loop-mounts the rootfs, sets up bind mounts and namespaces, registers binfmt_misc if needed, and execs Android init as PID 1; returns true once init has launched, does not block until the guest finishes boot
     bool start();
 
     // Sends SIGTERM to init and blocks until it exits or the timeout hits.
@@ -76,12 +72,15 @@ private:
     bool setup_bind_mounts();
     bool setup_dev_nodes();
     bool setup_binfmt_misc();
+    bool setup_resource_limits();
     bool launch_init();
     void teardown_mounts();
+    void teardown_cgroups();
+
+    std::vector<std::string> cgroup_paths_;
 };
 
-// Global registry of active Container instances. Owns all Container objects
-// and provides handle-based access for JNI.
+// Global registry of active Container instances; owns all Container objects and provides handle-based access for JNI
 class NamespaceManager {
 public:
     static NamespaceManager& instance();
@@ -112,8 +111,7 @@ private:
     std::string data_dir_;
     std::string native_lib_dir_;
 
-    // handle -> Container. handle is an incrementing int64_t, not a pointer,
-    // so it can be passed safely as a JNI jlong.
+    // handle -> Container; handle is an incrementing int64_t, not a pointer, so it can be passed safely as a JNI jlong
     std::unordered_map<int64_t, Container> containers_;
     int64_t next_handle_ = 1;
     bool initialized_ = false;

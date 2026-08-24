@@ -15,17 +15,12 @@ struct TouchPoint {
 
 enum class TouchAction { DOWN = 0, MOVE = 1, UP = 2 };
 
-// Creates a virtual touchscreen inside the guest via the Linux uinput
-// subsystem, registered as a multitouch type B device (what Android 4.x+
-// expects). Host touch/key events come in through VineRuntime's JNI layer,
-// get written as input_event structs to /dev/uinput, and the guest's
-// InputReader picks them up like a real hardware device.
+// Creates a virtual touchscreen inside the guest via Linux uinput, registered as a multitouch type B device; host events come in through VineRuntime's JNI layer and get written to /dev/uinput as input_event structs
 class UInputBridge {
 public:
     static constexpr int kMaxSlots = 10;
 
-    // uinput_dev_path is /dev/uinput inside the guest rootfs. screen_width
-    // and screen_height set the MT coordinate range.
+    // uinput_dev_path is /dev/uinput inside the guest rootfs; screen_width/screen_height set the MT coordinate range
     UInputBridge(
         std::string instance_id,
         std::string uinput_dev_path,
@@ -36,29 +31,21 @@ public:
     UInputBridge(const UInputBridge&) = delete;
     UInputBridge& operator=(const UInputBridge&) = delete;
 
-    /**
-     * Open /dev/uinput and register the virtual touchscreen device.
-     * Returns true on success.
-     */
+    // Opens /dev/uinput and registers the virtual touchscreen device, returns true on success
     bool setup();
 
-    /**
-     * Destroy the virtual input device and close the uinput fd.
-     */
+    // Destroys the virtual input device and closes the uinput fd
     void teardown();
 
     bool is_ready() const { return uinput_fd_ >= 0 && device_created_; }
 
-    // Updates the MT coordinate range used by setup(). Only takes effect
-    // before setup() has run; a no-op once the device is already created.
+    // Updates the MT coordinate range used by setup(); a no-op once the device already exists
     void set_screen_size(int width, int height);
 
     // action: 0=DOWN, 1=MOVE, 2=UP. x/y are in guest screen space.
     void send_touch(int action, float x, float y);
 
-    // Up to kMaxSlots concurrent contacts. Each point's slot must stay
-    // consistent across calls for a given finger (DOWN then MOVE... then
-    // an inactive point to lift it), same as Android's own MT protocol.
+    // Up to kMaxSlots concurrent contacts; each point's slot must stay consistent across calls for a given finger (DOWN, then MOVE.., then inactive to lift), matching Android's own MT protocol
     void send_multitouch(const TouchPoint* points, int count);
 
     // linux_keycode is a Linux KEY_* code from linux/input-event-codes.h.

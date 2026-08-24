@@ -61,6 +61,7 @@ class VineVMManager @Inject constructor(@ApplicationContext private val context:
                 instanceId = instance.id,
                 instancePath = instance.storagePath,
                 ramMb = instance.ramMb,
+                cpuCores = instance.cpuCores,
             )
 
             if (handle == 0L) {

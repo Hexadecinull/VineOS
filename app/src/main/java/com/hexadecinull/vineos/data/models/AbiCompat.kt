@@ -13,9 +13,7 @@ object AbiCompat {
 
     enum class RunMode { NATIVE, QEMU, UNAVAILABLE }
 
-    // Build.SUPPORTED_ABIS is backed by a real device property; the JVM
-    // unit test stub can leave it null or fail to resolve at all, so the
-    // default is read through this guard instead of inline per call site.
+    // Build.SUPPORTED_ABIS can be null or fail to resolve under the JVM unit test stub, so it's read through this guard instead of inline
     private fun currentHostAbis(): List<String> = try {
         Build.SUPPORTED_ABIS?.toList().orEmpty()
     } catch (_: Throwable) {

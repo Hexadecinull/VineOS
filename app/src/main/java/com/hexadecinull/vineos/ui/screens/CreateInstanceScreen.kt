@@ -43,7 +43,10 @@ fun CreateInstanceScreen(
     val name by vm.instanceName.collectAsStateWithLifecycle()
     val ram by vm.selectedRamMb.collectAsStateWithLifecycle()
     val storage by vm.selectedStorageMb.collectAsStateWithLifecycle()
+    val cpuCores by vm.selectedCpuCores.collectAsStateWithLifecycle()
     val emoji by vm.selectedEmoji.collectAsStateWithLifecycle()
+    val root by vm.selectedRoot.collectAsStateWithLifecycle()
+    val allowRoot by vm.allowRootInstances.collectAsStateWithLifecycle()
     val isFormValid by vm.isFormValid.collectAsStateWithLifecycle()
     val state by vm.state.collectAsStateWithLifecycle()
 
@@ -132,6 +135,33 @@ fun CreateInstanceScreen(
                 step = 1024,
                 onChange = { vm.selectedStorageMb.value = it },
             )
+
+            SliderSetting(
+                label = "CPU Cores",
+                value = cpuCores,
+                valueLabel = if (cpuCores == 0) "Unlimited" else "$cpuCores",
+                range = 0f..8f,
+                step = 1,
+                onChange = { vm.selectedCpuCores.value = it },
+            )
+
+            if (allowRoot) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column {
+                        Text("Enable root", style = MaterialTheme.typography.labelLarge)
+                        Text(
+                            "Grants Magisk/root inside this instance",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(checked = root, onCheckedChange = { vm.selectedRoot.value = it })
+                }
+            }
 
             if (state is CreateInstanceState.Error) {
                 Text(

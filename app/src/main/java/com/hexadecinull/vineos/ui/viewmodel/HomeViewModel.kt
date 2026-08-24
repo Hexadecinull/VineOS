@@ -28,8 +28,7 @@ class HomeViewModel @Inject constructor(private val instanceRepo: InstanceReposi
         }
         .stateIn(
             scope = viewModelScope,
-            // No grace period: sources are already-cached hot flows, so a
-            // rebuild on resubscribe is cheap.
+            // No grace period: sources are already-cached hot flows, so a rebuild on resubscribe is cheap
             started = SharingStarted.WhileSubscribed(),
             initialValue = HomeUiState(),
         )

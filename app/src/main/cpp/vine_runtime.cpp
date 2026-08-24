@@ -71,7 +71,7 @@ Java_com_hexadecinull_vineos_native_VineRuntime_createInstance(
 JNIEXPORT jlong JNICALL
 Java_com_hexadecinull_vineos_native_VineRuntime_startInstance(
         JNIEnv* env, jobject,
-        jstring j_instance_id, jstring j_instance_path, jint ram_mb) {
+        jstring j_instance_id, jstring j_instance_path, jint ram_mb, jint cpu_cores) {
     const std::string id = j2s(env, j_instance_id);
     const std::string path = j2s(env, j_instance_path);
     auto& mgr = vine::NamespaceManager::instance();
@@ -92,6 +92,7 @@ Java_com_hexadecinull_vineos_native_VineRuntime_startInstance(
     cfg.rootfs_image_path = path + "/rootfs.img";
     cfg.rootfs_mount_path = path + "/rootfs_mnt";
     cfg.ram_mb = (int)ram_mb;
+    cfg.cpu_cores = (int)cpu_cores;
     cfg.needs_qemu_32bit = needs_qemu && !qemu_path.empty();
     cfg.qemu_arm_path = qemu_path;
 
@@ -154,9 +155,7 @@ Java_com_hexadecinull_vineos_native_VineRuntime_getFramebufferFd(
     return (jint)fb->framebuffer_fd();
 }
 
-// Attach an Android Surface so the native render loop can draw into it.
-// ANativeWindow_fromSurface() acquires a reference; FramebufferBridge::set_surface()
-// acquires another. We release the local ref immediately after passing it in.
+// Attach an Android Surface so the native render loop can draw into it; ANativeWindow_fromSurface and FramebufferBridge::set_surface each acquire their own reference, the local one is released right after
 JNIEXPORT void JNICALL
 Java_com_hexadecinull_vineos_native_VineRuntime_attachSurface(
         JNIEnv* env, jobject, jlong handle, jobject surface) {
@@ -202,9 +201,7 @@ Java_com_hexadecinull_vineos_native_VineRuntime_stopRendering(
     }
 }
 
-// UInputBridge starts with a 1080x1920 guess (see startInstance); once the
-// framebuffer has actually queried the guest's real resolution, sync it in
-// before the uinput device is created so touch coordinates map correctly.
+// UInputBridge starts with a 1080x1920 guess (see startInstance); this syncs in the guest's real resolution once known, before the uinput device is created, so touch coordinates map correctly
 static void sync_screen_size(InstanceRuntime& rt) {
     if (rt.fb && rt.fb->is_open() && rt.input && !rt.input->is_ready()) {
         rt.input->set_screen_size(rt.fb->guest_width(), rt.fb->guest_height());

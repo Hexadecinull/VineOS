@@ -2,10 +2,7 @@
 
 #include <android/log.h>
 
-//
-// Usage:
-//   VINE_LOGI("Starting container for instance %s", instanceId);
-//   VINE_LOGE("mount() failed: %s", strerror(errno));
+// Usage: VINE_LOGI("Starting container for instance %s", instanceId);
 
 #define VINE_LOG_TAG "VineRuntime"
 

@@ -113,9 +113,9 @@ VineOS/
 - Prefer `StateFlow` over `LiveData` for observable state
 - `PascalCase` for Composable functions, `camelCase` for everything else
 - No comments on self-explanatory code. Where a comment earns its place
-  (a non-obvious workaround, a "why" that isn't visible in the code), keep
-  it to one or two lines. Long comment blocks and ASCII-art section
-  dividers get trimmed in review.
+  (a non-obvious workaround, a "why" that isn't visible in the code), it
+  must be a single `//` line, however long. No multi-line comment blocks,
+  no `/** */` doc comments, no ASCII-art section dividers.
 - `./gradlew ktlintCheck` must pass; see `.editorconfig` for the house style
 
 ```kotlin
@@ -138,7 +138,7 @@ fun InstanceCard(
 - No raw `new`/`delete`; use smart pointers
 - `std::string`/`std::vector`, not manual C-string allocation
 - No `printf`; use the `VINE_LOG*` macros, which route to `__android_log_print`
-- Same comment policy as Kotlin: short and only where genuinely useful
+- Same comment policy as Kotlin: single-line `//` only, short and genuinely useful
 
 ```cpp
 bool Container::setup_binfmt_misc() {

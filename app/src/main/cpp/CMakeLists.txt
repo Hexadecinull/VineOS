@@ -31,6 +31,7 @@ set(VINE_SOURCES
     display/framebuffer_bridge.cpp
     input/uinput_bridge.cpp
     utils/vine_utils.cpp
+    diagnostics/namespace_probe.cpp
 )
 
 add_library(vine_runtime SHARED ${VINE_SOURCES})
@@ -42,6 +43,7 @@ target_include_directories(vine_runtime PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/display
     ${CMAKE_CURRENT_SOURCE_DIR}/input
     ${CMAKE_CURRENT_SOURCE_DIR}/utils
+    ${CMAKE_CURRENT_SOURCE_DIR}/diagnostics
 )
 
 find_library(log-lib     log)

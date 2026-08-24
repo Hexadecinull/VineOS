@@ -171,8 +171,7 @@ bool FramebufferBridge::blit_to_window() {
             const int w = std::min(guest_width_, buffer.width);
             for (int x = 0; x < w; ++x) {
                 uint32_t px = s[x];
-                // BGRA: B=bits[0..7] G=bits[8..15] R=bits[16..23] A=bits[24..31]
-                // RGBA: R=bits[0..7] G=bits[8..15] B=bits[16..23] A=bits[24..31]
+                // BGRA→RGBA: swap B(bits 0-7) and R(bits 16-23), G and A stay in place
                 d[x] = ((px & 0x000000FF) << 16) | // B → R
                        ( px & 0x0000FF00)         | // G stays
                        ((px & 0x00FF0000) >> 16)  | // R → B
@@ -206,16 +205,13 @@ bool FramebufferBridge::start_render_loop() {
     render_thread_ = std::thread([this]() {
         VINE_LOGI("FramebufferBridge[%s]: render loop started", instance_id_.c_str());
 
-        // A Looper is required on this thread for AChoreographer's internal
-        // handler to actually dispatch callbacks when we pump it below.
+        // A Looper is required on this thread so AChoreographer's internal handler can dispatch callbacks when pumped below
         ALooper_prepare(0);
         AChoreographer* choreographer = AChoreographer_getInstance();
         AChoreographer_postFrameCallback(choreographer, &FramebufferBridge::on_vsync, this);
 
         while (rendering_.load()) {
-            // Pumps the Looper's queue so Choreographer can fire on_vsync.
-            // The 16ms timeout is just an upper bound on shutdown latency;
-            // actual frame pacing comes from the vsync callback itself.
+            // Pumps the Looper so Choreographer can fire on_vsync; the 16ms timeout only bounds shutdown latency, frame pacing comes from vsync itself
             ALooper_pollOnce(16, nullptr, nullptr, nullptr);
         }
 
