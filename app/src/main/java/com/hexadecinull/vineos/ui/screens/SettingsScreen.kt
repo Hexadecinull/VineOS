@@ -252,7 +252,7 @@ fun NavigateSettingsItem(icon: ImageVector, title: String, subtitle: String, onC
         },
         trailingContent = {
             Icon(
-                Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                Icons.Outlined.KeyboardArrowRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )

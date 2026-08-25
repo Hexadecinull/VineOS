@@ -72,7 +72,8 @@ class CreateInstanceViewModel @Inject constructor(
         }
     }
 
-    fun createInstance(rom: ROMImage) {
+    fun createInstance() {
+        val selectedRom = romFlow.value ?: return
         if (stateFlow.value is CreateInstanceState.Creating) return
         stateFlow.value = CreateInstanceState.Creating
 
@@ -85,7 +86,7 @@ class CreateInstanceViewModel @Inject constructor(
 
             val instancePath = VineRuntime.createInstance(
                 instanceId = "",
-                romImagePath = rom.localPath ?: "",
+                romImagePath = selectedRom.localPath ?: "",
                 storageMb = storage,
             )
 
@@ -100,14 +101,14 @@ class CreateInstanceViewModel @Inject constructor(
             val instance = VMInstance(
                 id = instanceId,
                 name = name,
-                romId = rom.id,
-                romVersion = rom.androidVersion,
+                romId = selectedRom.id,
+                romVersion = selectedRom.androidVersion,
                 storagePath = instancePath,
                 status = VMStatus.STOPPED,
                 ramMb = ram,
                 cpuCores = cpuCores,
                 storageMb = storage,
-                androidVersionDisplay = rom.displayName,
+                androidVersionDisplay = selectedRom.displayName,
                 isRooted = isRooted,
                 iconEmoji = selectedEmoji.value,
             )

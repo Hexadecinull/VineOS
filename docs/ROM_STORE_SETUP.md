@@ -59,7 +59,7 @@ field-for-field, no renaming:
       "androidVersion": "7.1.2",
       "apiLevel": 25,
       "description": "Stock AOSP 7.1.2, arm64-v8a with 32-bit compat",
-      "downloadUrl": "https://your-domain.example/roms/android-7.1.2-arm64.vrom",
+      "downloadUrl": "https://vineos.hexadecinull.dpdns.org/roms/android-7.1.2-arm64.vrom",
       "sha256": "<sha256 of the WHOLE .vrom file, see section 4>",
       "sizeBytes": 734003200,
       "minHostApiLevel": 26,
@@ -110,34 +110,53 @@ gets deleted.
 
 ## 5. nginx config
 
-A minimal, working config, adjust paths and domain:
+A minimal, working config serving both the ROM store and the project
+website (`website/index.html` in the repo) from the same domain,
+adjust paths as needed:
 
 ```nginx
 server {
     listen 443 ssl http2;
-    server_name your-domain.example;
+    server_name vineos.hexadecinull.dpdns.org;
 
-    ssl_certificate     /etc/letsencrypt/live/your-domain.example/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/your-domain.example/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/vineos.hexadecinull.dpdns.org/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/vineos.hexadecinull.dpdns.org/privkey.pem;
 
-    root /var/www/vineos-roms;
+    # Website: copy website/index.html from the repo into this directory
+    root /var/www/vineos-site;
+    index index.html;
 
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # ROM store: separate directory, see sections 1-4 above for its layout
     location /manifest.json {
+        alias /var/www/vineos-roms/manifest.json;
         add_header Cache-Control "no-cache";
         default_type application/json;
     }
 
     location /roms/ {
+        alias /var/www/vineos-roms/roms/;
         add_header Cache-Control "public, max-age=604800, immutable";
     }
 }
 
 server {
     listen 80;
-    server_name your-domain.example;
+    server_name vineos.hexadecinull.dpdns.org;
     return 301 https://$host$request_uri;
 }
 ```
+
+The website is a single static file with everything inline (styles,
+script, even the logo as an embedded image), no build step, so
+deploying an update is just copying the new `index.html` over the old
+one. It fetches `/roms/manifest.json` client-side to list available
+ROMs, so it'll show a "not live yet" empty state until the ROM store
+side of this config is actually serving a manifest, that's expected
+and not a bug in either piece.
 
 `no-cache` on the manifest means clients always revalidate before
 using a cached copy, useful since you'll be editing it whenever you
@@ -150,18 +169,17 @@ of it can't serve stale bytes under an unchanged URL.
 Get a cert with certbot the standard way:
 ```bash
 sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d your-domain.example
+sudo certbot --nginx -d vineos.hexadecinull.dpdns.org
 ```
 
-## 6. Pointing the app at your server
+## 6. Where the app points
 
-`ROMRepository.kt` currently hardcodes:
+`ROMRepository.kt` already hardcodes your domain:
 ```kotlin
-private const val MANIFEST_URL = "https://vineos.hexadecinull.com/roms/manifest.json"
+private const val MANIFEST_URL = "https://vineos.hexadecinull.dpdns.org/roms/manifest.json"
 ```
-Change this to your own domain's manifest URL. Tell me the actual
-domain once your server is up and I'll make that one-line edit for
-you, or change it yourself, it's the only place this needs to change.
+Nothing to change here unless the domain itself changes later, in
+which case that's the one line to update.
 
 ## 7. A helper script for generating the manifest
 
@@ -174,7 +192,7 @@ the app actually verifies, and writes out a ready-to-serve
 ```bash
 python3 scripts/generate_manifest.py \
     --roms-dir /var/www/vineos-roms/roms \
-    --base-url https://your-domain.example/roms \
+    --base-url https://vineos.hexadecinull.dpdns.org/roms \
     --output /var/www/vineos-roms/manifest.json
 ```
 
@@ -186,9 +204,43 @@ the real file.
 ## 8. Testing before you point real users at it
 
 ```bash
-curl -s https://your-domain.example/manifest.json | python3 -m json.tool
+curl -s https://vineos.hexadecinull.dpdns.org/manifest.json | python3 -m json.tool
 ```
 confirms the manifest itself is valid JSON and reachable. Beyond that,
 build a debug APK pointed at your `MANIFEST_URL`, and check the ROMs
 tab actually lists what you expect and that a full download completes
 and passes verification, that's the real end-to-end test.
+
+## 9. Certificate pinning
+
+`NetworkModule.kt` has a `CertificatePinner` slot for the ROM store
+host, currently disabled with placeholder values (pinning with a wrong
+value breaks every download outright, so it stays off until real pins
+are in). Once your server has a real cert, generate the primary pin:
+
+```bash
+openssl s_client -connect vineos.hexadecinull.dpdns.org:443 -servername vineos.hexadecinull.dpdns.org </dev/null 2>/dev/null \
+  | openssl x509 -pubkey -noout \
+  | openssl pkey -pubin -outform der \
+  | openssl dgst -sha256 -binary \
+  | openssl enc -base64
+```
+
+That gives you one pin (the current leaf certificate's public key
+hash). Pin a **second, backup** value too, so a routine cert renewal
+doesn't lock the app out before you can ship an update, either:
+- run the same command against your certbot renewal's *next* cert if
+  you can get at it ahead of time, or
+- more simply, pin your CA's intermediate certificate instead of (or
+  alongside) the leaf, since intermediates change far less often than
+  Let's Encrypt's ~90-day leaf rotation. `openssl s_client -showcerts`
+  against the same host shows the full chain; run the same
+  pubkey/dgst pipeline against the intermediate cert in that output
+  instead of the leaf.
+
+Put both values (prefixed `sha256/`, matching what the commands above
+already output) into `ROM_STORE_PIN_PRIMARY` and
+`ROM_STORE_PIN_BACKUP` in `NetworkModule.kt`. Pinning only activates
+once neither still contains the placeholder text, so a half-finished
+edit fails safe rather than silently breaking downloads.
+

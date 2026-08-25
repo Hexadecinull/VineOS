@@ -220,7 +220,7 @@ class ROMRepository @Inject constructor(@ApplicationContext private val context:
     )
 
     companion object {
-        private const val MANIFEST_URL = "https://vineos.hexadecinull.com/roms/manifest.json"
+        private const val MANIFEST_URL = "https://vineos.hexadecinull.dpdns.org/roms/manifest.json"
         private const val BUFFER_SIZE = 64 * 1024
     }
 }

@@ -174,7 +174,7 @@ fun CreateInstanceScreen(
             Spacer(Modifier.weight(1f))
 
             Button(
-                onClick = { vm.createInstance(currentRom) },
+                onClick = { vm.createInstance() },
                 enabled = isFormValid && state !is CreateInstanceState.Creating,
                 modifier = Modifier.fillMaxWidth(),
             ) {

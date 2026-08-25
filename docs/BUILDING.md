@@ -78,57 +78,13 @@ CMake 3.22.1).
 
 ### Signing (release builds)
 
-Create a `keystore.properties` file in the project root (already covered by
-`.gitignore`, never commit it):
-
-```properties
-storeFile=/path/to/your/vineos-release.jks
-storePassword=your_store_password
-keyAlias=vineos
-keyPassword=your_key_password
-```
-
-Generate a new keystore if you don't have one:
-```bash
-keytool -genkey -v -keystore vineos-release.jks -alias vineos -keyalg RSA -keysize 2048 -validity 10000
-```
-
-`app/build.gradle.kts` reads this file automatically and signs the
-`release` build type with it. Without `keystore.properties` present,
-`assembleRelease` still works locally but produces an unsigned APK, so
-that a plain checkout never fails to build just because nobody has set
-up signing yet.
-
-#### Setting up the GitHub Actions secrets for `.github/workflows/release.yml`
-
-The release workflow needs four repository secrets to sign the APK it
-builds. In the GitHub repo, go to **Settings → Secrets and variables →
-Actions → New repository secret** and add each of these:
-
-| Secret name | Value |
-|---|---|
-| `RELEASE_KEYSTORE_BASE64` | The keystore file, base64-encoded (see below) |
-| `RELEASE_STORE_PASSWORD` | The keystore's store password |
-| `RELEASE_KEY_ALIAS` | The key alias inside the keystore (`vineos` in the example above) |
-| `RELEASE_KEY_PASSWORD` | The password for that specific key |
-
-To get the base64 value for `RELEASE_KEYSTORE_BASE64`:
-```bash
-base64 -w 0 vineos-release.jks > keystore.b64
-cat keystore.b64
-```
-Paste the entire single-line output as the secret's value, then delete
-`keystore.b64`, it was only needed to get the text into the clipboard.
-
-Keep the original `.jks` file itself somewhere safe outside the repo
-(a password manager's file storage, an encrypted drive, etc.) in
-addition to the GitHub secret. If it's ever lost, every future release
-would need a new signing key, and Android treats that as a different
-app: existing installs could not upgrade in place, users would need to
-uninstall and reinstall, losing local instance data in the process.
-GitHub secrets are write-only once saved (nobody, including repo
-admins, can read them back through the UI), so the file itself is the
-only backup that matters.
+See `docs/RELEASE_SETUP.md` for the full guide, generating a keystore,
+setting up the GitHub Actions secrets `release.yml` needs, and how to
+actually run a release. The short version for local builds only:
+create a `keystore.properties` in the project root (covered by
+`.gitignore`) with `storeFile`/`storePassword`/`keyAlias`/`keyPassword`,
+and `app/build.gradle.kts` picks it up automatically. Without it,
+`assembleRelease` still works locally, just producing an unsigned APK.
 
 ## Building qemu-arm
 

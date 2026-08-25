@@ -22,7 +22,6 @@ gradle/wrapper/gradle-wrapper.jar
 
 # Log files
 *.log
-/app/src/main/res/raw/
 local.properties
 captures/
 

@@ -62,12 +62,16 @@ jobs:
     name: CodeQL summary
     runs-on: ubuntu-latest
     needs: analyze
-    if: github.event_name == 'pull_request'
     permissions:
       pull-requests: write
       security-events: read
     steps:
-      - uses: actions/github-script@v9
+      - name: Write job summary
+        run: echo "## CodeQL analysis complete for java-kotlin and cpp. Findings, if any, are in Security → Code scanning alerts, this job only confirms the scan ran." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on the pull request
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v9
         with:
           script: |
             github.rest.issues.createComment({
