@@ -108,21 +108,42 @@ replace a `.vrom` file, a stale hash here means every install fails
 with a "SHA-256 verification failed" error and the partial download
 gets deleted.
 
-## 5. nginx config
+## 5. Deploying the website and ROM store
 
-A minimal, working config serving both the ROM store and the project
-website (`website/index.html` in the repo) from the same domain,
-adjust paths as needed:
+Both live on the same box, the website at `/` and the ROM store under
+`/roms/` and `/manifest.json`, on the same domain. Steps 5.1-5.2 are
+the same regardless of how you expose the box to the internet; 5.3
+covers Cloudflare Tunnel and direct nginx exposure separately since
+they genuinely differ.
+
+### 5.1 Put the files in place
+
+```bash
+sudo mkdir -p /var/www/vineos-site /var/www/vineos-roms/roms
+
+# Website: copy website/index.html from the repo
+sudo cp website/index.html /var/www/vineos-site/index.html
+
+# ROM store: .vrom files plus a manifest.json, generated per sections 2-4 and 7 above
+sudo cp path/to/*.vrom /var/www/vineos-roms/roms/
+python3 scripts/generate_manifest.py \
+    --roms-dir /var/www/vineos-roms/roms \
+    --base-url https://vineos.hexadecinull.dpdns.org/roms \
+    --output /var/www/vineos-roms/manifest.json
+
+sudo chown -R www-data:www-data /var/www/vineos-site /var/www/vineos-roms
+```
+
+### 5.2 nginx config
+
+Install nginx if it's not already there (`sudo apt install nginx`),
+then this config, adjust paths if you used different ones above:
 
 ```nginx
 server {
-    listen 443 ssl http2;
+    listen 80;
     server_name vineos.hexadecinull.dpdns.org;
 
-    ssl_certificate     /etc/letsencrypt/live/vineos.hexadecinull.dpdns.org/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/vineos.hexadecinull.dpdns.org/privkey.pem;
-
-    # Website: copy website/index.html from the repo into this directory
     root /var/www/vineos-site;
     index index.html;
 
@@ -130,7 +151,6 @@ server {
         try_files $uri $uri/ =404;
     }
 
-    # ROM store: separate directory, see sections 1-4 above for its layout
     location /manifest.json {
         alias /var/www/vineos-roms/manifest.json;
         add_header Cache-Control "no-cache";
@@ -142,20 +162,23 @@ server {
         add_header Cache-Control "public, max-age=604800, immutable";
     }
 }
-
-server {
-    listen 80;
-    server_name vineos.hexadecinull.dpdns.org;
-    return 301 https://$host$request_uri;
-}
 ```
+
+Save that as `/etc/nginx/sites-available/vineos`, then:
+```bash
+sudo ln -s /etc/nginx/sites-available/vineos /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+This deliberately listens on plain port 80 with no TLS block, that
+part depends on which of the two paths below you use.
 
 The website is a single static file with everything inline (styles,
 script, even the logo as an embedded image), no build step, so
-deploying an update is just copying the new `index.html` over the old
-one. It fetches `/roms/manifest.json` client-side to list available
-ROMs, so it'll show a "not live yet" empty state until the ROM store
-side of this config is actually serving a manifest, that's expected
+deploying an update is just `sudo cp website/index.html
+/var/www/vineos-site/index.html` again. It fetches `/roms/manifest.json`
+client-side to list available ROMs, so it'll show a "not live yet"
+empty state until 5.1's manifest is actually in place, that's expected
 and not a bug in either piece.
 
 `no-cache` on the manifest means clients always revalidate before
@@ -166,11 +189,70 @@ give the new file a new name (e.g. bump a version suffix) rather than
 overwriting the old one in place, so any CDN or browser cache in front
 of it can't serve stale bytes under an unchanged URL.
 
-Get a cert with certbot the standard way:
+### 5.3 Getting the domain online
+
+**Path A: Cloudflare Tunnel** (what you're using) — no port forwarding
+on your router, no certificate on the origin box at all, Cloudflare's
+edge handles public TLS and `cloudflared` makes an outbound-only
+connection from your Debian box to Cloudflare, so nothing needs to
+accept inbound connections from the internet directly.
+
+```bash
+# on the Debian box
+sudo mkdir -p --mode=0755 /usr/share/keyrings
+curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
+echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared any main' | sudo tee /etc/apt/sources.list.d/cloudflared.list
+sudo apt-get update && sudo apt-get install cloudflared
+
+cloudflared tunnel login
+cloudflared tunnel create vineos
+cloudflared tunnel route dns vineos vineos.hexadecinull.dpdns.org
+```
+
+That last command creates the DNS record in your Cloudflare dashboard
+automatically, a proxied (orange-cloud) CNAME to the tunnel, no manual
+DNS editing needed. Then point the tunnel at the nginx you just set up
+on port 80:
+
+```bash
+sudo mkdir -p /etc/cloudflared
+sudo tee /etc/cloudflared/config.yml << 'EOF'
+tunnel: vineos
+credentials-file: /root/.cloudflared/<TUNNEL-ID>.json
+ingress:
+  - hostname: vineos.hexadecinull.dpdns.org
+    service: http://localhost:80
+  - service: http_status:404
+EOF
+
+sudo cloudflared service install
+sudo systemctl enable --now cloudflared
+```
+
+(Swap `<TUNNEL-ID>` for the actual ID `cloudflared tunnel create` printed,
+or run `cloudflared tunnel list` to look it up again.) Traffic between
+`cloudflared` and Cloudflare's edge is already encrypted by the tunnel
+protocol itself, and `cloudflared`-to-nginx is on localhost, so plain
+HTTP for nginx here is fine, not a downgrade.
+
+One thing worth knowing since you're already on Cloudflare: their
+dashboard also has a plain **Websites → DNS** flow that only needs a
+CNAME record if you'd rather not run a persistent tunnel daemon at
+all, pointing the subdomain at wherever the box is reachable and
+letting Cloudflare proxy it, but Tunnel is the better fit for a home
+server with no static IP or open ports, which sounds like your setup.
+
+**Path B: direct exposure with certbot** — needs port 80/443 forwarded
+to the box and a stable way for `vineos.hexadecinull.dpdns.org` to
+resolve to its public IP. Only relevant if you move away from
+Cloudflare Tunnel later:
 ```bash
 sudo apt install certbot python3-certbot-nginx
 sudo certbot --nginx -d vineos.hexadecinull.dpdns.org
 ```
+certbot rewrites the nginx config in place to add the `443 ssl` block
+and a `80 → 443` redirect automatically, you don't need to hand-write
+that part.
 
 ## 6. Where the app points
 
@@ -216,7 +298,28 @@ and passes verification, that's the real end-to-end test.
 `NetworkModule.kt` has a `CertificatePinner` slot for the ROM store
 host, currently disabled with placeholder values (pinning with a wrong
 value breaks every download outright, so it stays off until real pins
-are in). Once your server has a real cert, generate the primary pin:
+are in).
+
+**Since you're using Cloudflare Tunnel, read this first:** with the
+domain proxied through Cloudflare (the orange-cloud DNS record
+`cloudflared tunnel route dns` created), the TLS connection the app
+actually makes terminates at **Cloudflare's edge**, not your origin
+box. Running the command below against `vineos.hexadecinull.dpdns.org`
+correctly captures whatever the app really sees, that part still
+works, but it means you're pinning Cloudflare's certificate, not one
+you personally control the renewal of. Cloudflare rotates their edge
+certs on their own schedule, out of your control, and that cert may be
+shared across many unrelated Cloudflare customers on the same shared
+pool, so it's less predictable than pinning your own certbot-managed
+cert would be. Given that, a reasonable call here is to **leave
+pinning off** and rely on the sha256 file-integrity check (section 4)
+plus Cloudflare's own edge security instead, revisit this if you ever
+move off Cloudflare Tunnel to a setup where you control the origin
+cert's lifecycle directly. If you do want it anyway, pin Cloudflare's
+root/intermediate CA rather than the leaf, root CAs change on the
+order of years, not Cloudflare's routine leaf rotation.
+
+Generate the primary pin:
 
 ```bash
 openssl s_client -connect vineos.hexadecinull.dpdns.org:443 -servername vineos.hexadecinull.dpdns.org </dev/null 2>/dev/null \
@@ -230,13 +333,14 @@ That gives you one pin (the current leaf certificate's public key
 hash). Pin a **second, backup** value too, so a routine cert renewal
 doesn't lock the app out before you can ship an update, either:
 - run the same command against your certbot renewal's *next* cert if
-  you can get at it ahead of time, or
-- more simply, pin your CA's intermediate certificate instead of (or
-  alongside) the leaf, since intermediates change far less often than
-  Let's Encrypt's ~90-day leaf rotation. `openssl s_client -showcerts`
-  against the same host shows the full chain; run the same
-  pubkey/dgst pipeline against the intermediate cert in that output
-  instead of the leaf.
+  you can get at it ahead of time (only applicable to the direct
+  exposure path, not Cloudflare Tunnel), or
+- more simply, pin the intermediate or root certificate instead of
+  (or alongside) the leaf, since those change far less often, whether
+  it's Let's Encrypt's ~90-day leaf rotation or Cloudflare's own edge
+  cert rotation. `openssl s_client -showcerts` against the same host
+  shows the full chain; run the same pubkey/dgst pipeline against the
+  intermediate or root cert in that output instead of the leaf.
 
 Put both values (prefixed `sha256/`, matching what the commands above
 already output) into `ROM_STORE_PIN_PRIMARY` and
