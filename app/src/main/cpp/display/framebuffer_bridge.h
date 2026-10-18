@@ -8,7 +8,7 @@
 #include <android/choreographer.h>
 #include <android/native_window.h>
 
-namespace vine::display {
+namespace ypsilon::display {
 
 enum class FrameFormat {
     RGBA_8888,
@@ -47,6 +47,12 @@ public:
 
     void set_resize_callback(ResizeCallback cb) { resize_cb_ = std::move(cb); }
 
+    // Render scale: 1.0 = native resolution. Values < 1.0 downscale the guest
+    // framebuffer before blitting, which greatly reduces fill-rate and memory
+    // bandwidth on low-end devices (e.g. 0.75 or 0.5 for Pokémon GO on 2GB RAM).
+    void set_render_scale(float scale);
+    float render_scale() const { return render_scale_; }
+
     static void convert_rgb565_to_rgba8888(
         const void* src, void* dst,
         int width, int height, int src_stride);
@@ -70,6 +76,8 @@ private:
 
     ResizeCallback resize_cb_;
 
+    float render_scale_ = 1.0f; // 1.0 = no downscaling
+
     bool query_fb_geometry();
     bool mmap_fb();
     void munmap_fb();
@@ -79,4 +87,4 @@ private:
     static void on_vsync(long frame_time_nanos, void* data);
 };
 
-} // namespace vine::display
+} // namespace ypsilon::display

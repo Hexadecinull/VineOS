@@ -9,7 +9,7 @@
 #include <linux/uinput.h>
 #include <linux/input-event-codes.h>
 
-namespace vine::input {
+namespace ypsilon::input {
 
 UInputBridge::UInputBridge(
         std::string instance_id, std::string uinput_dev_path,
@@ -31,11 +31,11 @@ void UInputBridge::set_screen_size(int width, int height) {
 
 bool UInputBridge::setup() {
     uinput_fd_ = open(uinput_dev_path_.c_str(), O_WRONLY | O_NONBLOCK | O_CLOEXEC);
-    if (uinput_fd_ < 0) { VINE_LOGE_ERRNO(("open(" + uinput_dev_path_ + ")").c_str()); return false; }
+    if (uinput_fd_ < 0) { YPSILON_LOGE_ERRNO(("open(" + uinput_dev_path_ + ")").c_str()); return false; }
 
     if (ioctl(uinput_fd_, UI_SET_EVBIT, EV_KEY) < 0 ||
         ioctl(uinput_fd_, UI_SET_EVBIT, EV_ABS) < 0) {
-        VINE_LOGE_ERRNO("uinput EV setup"); teardown(); return false;
+        YPSILON_LOGE_ERRNO("uinput EV setup"); teardown(); return false;
     }
 
     // Every key android_to_linux_keycode() can produce, plus BTN_TOUCH for the touchscreen; uinput silently drops events for codes not declared here first
@@ -49,7 +49,7 @@ bool UInputBridge::setup() {
     };
     for (uint16_t key : kKeyBits) {
         if (ioctl(uinput_fd_, UI_SET_KEYBIT, key) < 0) {
-            VINE_LOGE("UI_SET_KEYBIT(%d): %s", key, strerror(errno));
+            YPSILON_LOGE("UI_SET_KEYBIT(%d): %s", key, strerror(errno));
             teardown(); return false;
         }
     }
@@ -67,7 +67,7 @@ bool UInputBridge::setup() {
     };
     for (const auto& a : axes) {
         if (ioctl(uinput_fd_, UI_SET_ABSBIT, a.code) < 0) {
-            VINE_LOGE("UI_SET_ABSBIT(%d): %s", a.code, strerror(errno));
+            YPSILON_LOGE("UI_SET_ABSBIT(%d): %s", a.code, strerror(errno));
             teardown(); return false;
         }
     }
@@ -79,7 +79,7 @@ bool UInputBridge::setup() {
     usetup.id.product = 0x5678;
     usetup.id.version = 1;
     if (ioctl(uinput_fd_, UI_DEV_SETUP, &usetup) < 0) {
-        VINE_LOGE_ERRNO("UI_DEV_SETUP"); teardown(); return false;
+        YPSILON_LOGE_ERRNO("UI_DEV_SETUP"); teardown(); return false;
     }
 
     for (const auto& a : axes) {
@@ -91,11 +91,11 @@ bool UInputBridge::setup() {
     }
 
     if (ioctl(uinput_fd_, UI_DEV_CREATE) < 0) {
-        VINE_LOGE_ERRNO("UI_DEV_CREATE"); teardown(); return false;
+        YPSILON_LOGE_ERRNO("UI_DEV_CREATE"); teardown(); return false;
     }
 
     device_created_ = true;
-    VINE_LOGI("UInputBridge[%s]: virtual touchscreen created (%dx%d)",
+    YPSILON_LOGI("UInputBridge[%s]: virtual touchscreen created (%dx%d)",
               instance_id_.c_str(), screen_width_, screen_height_);
     return true;
 }
@@ -134,7 +134,7 @@ void UInputBridge::send_touch(int action, float x, float y) {
             write_event(EV_KEY, BTN_TOUCH,          0);
             break;
         default:
-            VINE_LOGW("send_touch: unknown action %d", action);
+            YPSILON_LOGW("send_touch: unknown action %d", action);
             return;
     }
     sync();
@@ -147,7 +147,7 @@ void UInputBridge::send_multitouch(const TouchPoint* points, int count) {
     for (int i = 0; i < count; ++i) {
         const TouchPoint& p = points[i];
         if (p.slot < 0 || p.slot >= kMaxSlots) {
-            VINE_LOGW("send_multitouch: slot %d out of range", p.slot);
+            YPSILON_LOGW("send_multitouch: slot %d out of range", p.slot);
             continue;
         }
 
@@ -217,4 +217,4 @@ bool UInputBridge::write_event(uint16_t type, uint16_t code, int32_t value) {
 
 void UInputBridge::sync() { write_event(EV_SYN, SYN_REPORT, 0); }
 
-} // namespace vine::input
+} // namespace ypsilon::input

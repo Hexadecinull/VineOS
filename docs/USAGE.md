@@ -1,6 +1,6 @@
-# Using VineOS
+# Using YpsilonOS
 
-This is a guide to using the VineOS app itself: downloading ROMs, creating
+This is a guide to using the YpsilonOS app itself: downloading ROMs, creating
 and running instances, and what the settings do. For building the app from
 source, see [BUILDING.md](BUILDING.md); for how it works internally, see
 [ARCHITECTURE.md](ARCHITECTURE.md).
@@ -19,7 +19,7 @@ source, see [BUILDING.md](BUILDING.md); for how it works internally, see
 
 ## Before you start: is your device compatible?
 
-VineOS needs `minSdk` 26 (Android 8.0) or newer, and works on `arm64-v8a`,
+YpsilonOS needs `minSdk` 26 (Android 8.0) or newer, and works on `arm64-v8a`,
 `armeabi-v7a`, `x86_64`, and `x86` devices. You can check your device's
 supported ABIs from **Settings → About → Host ABI** inside the app, which
 mirrors what `adb shell getprop ro.product.cpu.abilist` reports.
@@ -37,7 +37,7 @@ exactly what to expect before you download anything.
    architectures it supports.
 3. Tap a ROM to see its full detail page: description, supported ABIs with
    per-ABI compatibility, and whether it includes 32-bit app support.
-4. Tap **Download**. VineOS verifies the download's SHA-256 hash before
+4. Tap **Download**. YpsilonOS verifies the download's SHA-256 hash before
    marking it ready; a corrupted or interrupted download is flagged rather
    than silently used.
 
@@ -58,7 +58,7 @@ From a ROM's detail page, once it's downloaded, tap **Create Instance**:
 4. **Storage**: how much disk space the guest's writable partition gets.
    This is allocated up front, so pick something reasonable for what
    you'll install inside the guest.
-5. Tap **Create Instance**. VineOS sets up the instance's storage and
+5. Tap **Create Instance**. YpsilonOS sets up the instance's storage and
    takes you straight into it.
 
 ## Running an instance
@@ -71,10 +71,10 @@ either the home screen or its detail page.
 Once booted, the instance opens full-screen. Touch input is forwarded
 directly to the guest as if it were a real touchscreen; the floating
 controls at the bottom give you Android's Home and Recents/Overview
-actions inside the guest, plus a way to back out to VineOS itself.
+actions inside the guest, plus a way to back out to YpsilonOS itself.
 
 Instances keep running in the background (via a foreground service, with
-a persistent notification) if you switch away from VineOS, so you can use
+a persistent notification) if you switch away from YpsilonOS, so you can use
 other apps while a guest stays booted.
 
 ## Managing instances
@@ -89,8 +89,8 @@ permanently and can't be undone; an instance must be stopped first.
 
 | Setting | What it does |
 |---|---|
-| Dynamic color | Uses Android's Material You wallpaper-based theme instead of VineOS's own brand palette |
-| Keep screen on | Prevents the display from sleeping while VineOS is open |
+| Dynamic color | Uses Android's Material You wallpaper-based theme instead of YpsilonOS's own brand palette |
+| Keep screen on | Prevents the display from sleeping while YpsilonOS is open |
 | Default RAM / storage | Pre-fills the create-instance form; you can still override per instance |
 | Show technical info | Shows kernel version, ABI, and namespace details on instance cards |
 | Allow root instances | Enables the option to grant an instance root access; see below |
@@ -143,6 +143,6 @@ It only appears on a downloaded ROM's detail page (ROMs tab → tap a ROM →
 Create Instance), not directly from the Instances tab.
 
 For anything not covered here, check existing
-[GitHub Issues](https://github.com/Hexadecinull/VineOS/issues) or open a
+[GitHub Issues](https://github.com/Hexadecinull/YpsilonOS/issues) or open a
 new one with the details listed in
 [CONTRIBUTING.md](CONTRIBUTING.md#issue-reporting).

@@ -1,7 +1,8 @@
 #include "framebuffer_bridge.h"
-#include "../utils/vine_log.h"
-#include "../utils/vine_utils.h"
+#include "../utils/ypsilon_log.h"
+#include "../utils/ypsilon_utils.h"
 
+#include <algorithm>
 #include <cerrno>
 #include <cstring>
 #include <atomic>
@@ -14,7 +15,7 @@
 #include <android/looper.h>
 #include <android/native_window.h>
 
-namespace vine::display {
+namespace ypsilon::display {
 
 FramebufferBridge::FramebufferBridge(std::string instance_id, std::string fb_device_path)
     : instance_id_(std::move(instance_id)), fb_device_path_(std::move(fb_device_path)) {}
@@ -25,13 +26,13 @@ FramebufferBridge::~FramebufferBridge() {
 }
 
 bool FramebufferBridge::open() {
-    if (!vine::path_exists(fb_device_path_)) {
-        VINE_LOGE("Framebuffer device not found: %s", fb_device_path_.c_str());
+    if (!ypsilon::path_exists(fb_device_path_)) {
+        YPSILON_LOGE("Framebuffer device not found: %s", fb_device_path_.c_str());
         return false;
     }
     fb_fd_ = ::open(fb_device_path_.c_str(), O_RDWR | O_CLOEXEC);
     if (fb_fd_ < 0) {
-        VINE_LOGE_ERRNO(("open(" + fb_device_path_ + ")").c_str());
+        YPSILON_LOGE_ERRNO(("open(" + fb_device_path_ + ")").c_str());
         return false;
     }
     if (!query_fb_geometry()) {
@@ -44,7 +45,7 @@ bool FramebufferBridge::open() {
         fb_fd_ = -1;
         return false;
     }
-    VINE_LOGI("FramebufferBridge[%s]: opened %dx%d fmt=%d stride=%d",
+    YPSILON_LOGI("FramebufferBridge[%s]: opened %dx%d fmt=%d stride=%d",
               instance_id_.c_str(), guest_width_, guest_height_, (int)format_, guest_stride_);
     return true;
 }
@@ -62,9 +63,15 @@ void FramebufferBridge::set_surface(ANativeWindow* window) {
         ANativeWindow_acquire(window_);
         // AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM = 1
         ANativeWindow_setBuffersGeometry(window_, guest_width_, guest_height_, 1);
-        VINE_LOGI("FramebufferBridge[%s]: surface attached %dx%d",
+        YPSILON_LOGI("FramebufferBridge[%s]: surface attached %dx%d",
                   instance_id_.c_str(), guest_width_, guest_height_);
     }
+}
+
+void FramebufferBridge::set_render_scale(float scale) {
+    render_scale_ = std::clamp(scale, 0.25f, 1.0f);
+    YPSILON_LOGI("FramebufferBridge[%s]: render scale → %.2f",
+                 instance_id_.c_str(), render_scale_);
 }
 
 bool FramebufferBridge::query_fb_geometry() {
@@ -72,19 +79,19 @@ bool FramebufferBridge::query_fb_geometry() {
     struct fb_fix_screeninfo finfo{};
 
     if (ioctl(fb_fd_, FBIOGET_VSCREENINFO, &vinfo) != 0) {
-        VINE_LOGE_ERRNO("FBIOGET_VSCREENINFO");
+        YPSILON_LOGE_ERRNO("FBIOGET_VSCREENINFO");
         // Fall back to ranchu defaults (1080x1920 RGBA_8888)
         guest_width_  = 1080;
         guest_height_ = 1920;
         guest_stride_ = guest_width_ * 4;
         format_       = FrameFormat::RGBA_8888;
         frame_size_   = (size_t)guest_stride_ * guest_height_;
-        VINE_LOGW("Using fallback framebuffer geometry %dx%d", guest_width_, guest_height_);
+        YPSILON_LOGW("Using fallback framebuffer geometry %dx%d", guest_width_, guest_height_);
         return true;
     }
 
     if (ioctl(fb_fd_, FBIOGET_FSCREENINFO, &finfo) != 0) {
-        VINE_LOGE_ERRNO("FBIOGET_FSCREENINFO");
+        YPSILON_LOGE_ERRNO("FBIOGET_FSCREENINFO");
         return false;
     }
 
@@ -104,26 +111,26 @@ bool FramebufferBridge::query_fb_geometry() {
             format_ = FrameFormat::BGRA_8888;
         }
     } else {
-        VINE_LOGW("Unknown bpp=%d, assuming RGBA_8888", vinfo.bits_per_pixel);
+        YPSILON_LOGW("Unknown bpp=%d, assuming RGBA_8888", vinfo.bits_per_pixel);
         format_ = FrameFormat::RGBA_8888;
     }
 
-    VINE_LOGI("FB geometry: %dx%d stride=%d bpp=%d fmt=%d smem_len=%zu",
+    YPSILON_LOGI("FB geometry: %dx%d stride=%d bpp=%d fmt=%d smem_len=%zu",
               guest_width_, guest_height_, guest_stride_,
               vinfo.bits_per_pixel, (int)format_, frame_size_);
     return true;
 }
 
 bool FramebufferBridge::mmap_fb() {
-    if (frame_size_ == 0) { VINE_LOGE("frame_size_ is 0, cannot mmap"); return false; }
+    if (frame_size_ == 0) { YPSILON_LOGE("frame_size_ is 0, cannot mmap"); return false; }
 
     fb_mmap_ = mmap(nullptr, frame_size_, PROT_READ, MAP_SHARED, fb_fd_, 0);
     if (fb_mmap_ == MAP_FAILED) {
-        VINE_LOGE_ERRNO("mmap(framebuffer)");
+        YPSILON_LOGE_ERRNO("mmap(framebuffer)");
         fb_mmap_ = nullptr;
         return false;
     }
-    VINE_LOGD("FramebufferBridge: mmap %zu bytes at %p", frame_size_, fb_mmap_);
+    YPSILON_LOGD("FramebufferBridge: mmap %zu bytes at %p", frame_size_, fb_mmap_);
     return true;
 }
 
@@ -144,7 +151,7 @@ bool FramebufferBridge::blit_to_window() {
     ARect bounds = {0, 0, guest_width_, guest_height_};
 
     if (ANativeWindow_lock(window_, &buffer, &bounds) != 0) {
-        VINE_LOGW("ANativeWindow_lock failed");
+        YPSILON_LOGW("ANativeWindow_lock failed");
         return false;
     }
 
@@ -152,41 +159,122 @@ bool FramebufferBridge::blit_to_window() {
     uint8_t* dst = static_cast<uint8_t*>(buffer.bits);
     const int dst_stride_bytes = buffer.stride * 4; // ANativeWindow stride is in pixels
 
-    if (format_ == FrameFormat::RGB_565) {
-        // Convert RGB565 → RGBA8888 row by row
-        for (int y = 0; y < guest_height_ && y < buffer.height; ++y) {
-            convert_rgb565_to_rgba8888(
-                src + y * guest_stride_,
-                dst + y * dst_stride_bytes,
-                std::min(guest_width_, buffer.width),
-                1,
-                guest_stride_
-            );
+    // Effective render resolution. With render_scale_ < 1.0 we downscale the
+    // guest framebuffer before blitting, saving fill-rate and memory bandwidth
+    // on low-end devices. Box-filtered downsampling keeps the image crisp.
+    const float scale = render_scale_;
+    const int src_w = guest_width_;
+    const int src_h = guest_height_;
+    const int dst_w = std::max(1, (int)(src_w * scale));
+    const int dst_h = std::max(1, (int)(src_h * scale));
+    const int draw_w = std::min(dst_w, buffer.width);
+    const int draw_h = std::min(dst_h, buffer.height);
+
+    const int src_row_pixels = (guest_stride_ > 0) ? (guest_stride_ / 4) : src_w;
+
+    if (format_ == FrameFormat::RGBA_8888 || format_ == FrameFormat::RGBX_8888) {
+        const uint32_t* s = reinterpret_cast<const uint32_t*>(src);
+        uint32_t* d = reinterpret_cast<uint32_t*>(dst);
+        for (int dy = 0; dy < draw_h; ++dy) {
+            const int sy0 = (dy * src_h) / draw_h;
+            const int sy1 = ((dy + 1) * src_h) / draw_h;
+            for (int dx = 0; dx < draw_w; ++dx) {
+                const int sx0 = (dx * src_w) / draw_w;
+                const int sx1 = ((dx + 1) * src_w) / draw_w;
+                uint32_t r = 0, g = 0, b = 0, a = 0;
+                int count = 0;
+                for (int sy = sy0; sy < sy1 && sy < src_h; ++sy) {
+                    const uint32_t* row = s + sy * src_row_pixels;
+                    for (int sx = sx0; sx < sx1 && sx < src_w; ++sx) {
+                        uint32_t px = row[sx];
+                        r += (px >> 16) & 0xFF;
+                        g += (px >> 8) & 0xFF;
+                        b += px & 0xFF;
+                        a += (px >> 24) & 0xFF;
+                        ++count;
+                    }
+                }
+                if (count > 0) {
+                    d[dy * buffer.stride + dx] =
+                        (a / count << 24) | (r / count << 16) | (g / count << 8) | (b / count);
+                }
+            }
         }
     } else if (format_ == FrameFormat::BGRA_8888) {
-        // Swap B and R channels (BGRA → RGBA)
-        for (int y = 0; y < guest_height_ && y < buffer.height; ++y) {
-            const uint32_t* s = reinterpret_cast<const uint32_t*>(src + y * guest_stride_);
-            uint32_t* d = reinterpret_cast<uint32_t*>(dst + y * dst_stride_bytes);
-            const int w = std::min(guest_width_, buffer.width);
-            for (int x = 0; x < w; ++x) {
-                uint32_t px = s[x];
-                // BGRA→RGBA: swap B(bits 0-7) and R(bits 16-23), G and A stay in place
-                d[x] = ((px & 0x000000FF) << 16) | // B → R
-                       ( px & 0x0000FF00)         | // G stays
-                       ((px & 0x00FF0000) >> 16)  | // R → B
-                       ( px & 0xFF000000);           // A stays
+        const uint32_t* s = reinterpret_cast<const uint32_t*>(src);
+        uint32_t* d = reinterpret_cast<uint32_t*>(dst);
+        for (int dy = 0; dy < draw_h; ++dy) {
+            const int sy0 = (dy * src_h) / draw_h;
+            const int sy1 = ((dy + 1) * src_h) / draw_h;
+            for (int dx = 0; dx < draw_w; ++dx) {
+                const int sx0 = (dx * src_w) / draw_w;
+                const int sx1 = ((dx + 1) * src_w) / draw_w;
+                uint32_t r = 0, g = 0, b = 0, a = 0;
+                int count = 0;
+                for (int sy = sy0; sy < sy1 && sy < src_h; ++sy) {
+                    const uint32_t* row = s + sy * src_row_pixels;
+                    for (int sx = sx0; sx < sx1 && sx < src_w; ++sx) {
+                        uint32_t px = row[sx];
+                        r += (px >> 16) & 0xFF;
+                        g += (px >> 8) & 0xFF;
+                        b += px & 0xFF;
+                        a += (px >> 24) & 0xFF;
+                        ++count;
+                    }
+                }
+                if (count > 0) {
+                    d[dy * buffer.stride + dx] =
+                        ((b / count) << 16) | (g / count << 8) | (r / count) | (a / count << 24);
+                }
+            }
+        }
+    } else if (format_ == FrameFormat::RGB_565) {
+        const uint16_t* s = reinterpret_cast<const uint16_t*>(src);
+        uint32_t* d = reinterpret_cast<uint32_t*>(dst);
+        for (int dy = 0; dy < draw_h; ++dy) {
+            const int sy0 = (dy * src_h) / draw_h;
+            const int sy1 = ((dy + 1) * src_h) / draw_h;
+            for (int dx = 0; dx < draw_w; ++dx) {
+                const int sx0 = (dx * src_w) / draw_w;
+                const int sx1 = ((dx + 1) * src_w) / draw_w;
+                uint32_t r = 0, g = 0, b = 0;
+                int count = 0;
+                for (int sy = sy0; sy < sy1 && sy < src_h; ++sy) {
+                    const uint16_t* row = s + sy * (guest_stride_ / 2);
+                    for (int sx = sx0; sx < sx1 && sx < src_w; ++sx) {
+                        uint16_t px = row[sx];
+                        r += ((px >> 11) & 0x1F);
+                        g += ((px >> 5) & 0x3F);
+                        b += (px & 0x1F);
+                        ++count;
+                    }
+                }
+                if (count > 0) {
+                    uint8_t R = (uint8_t)(((r / count) << 3) | ((r / count) >> 2));
+                    uint8_t G = (uint8_t)(((g / count) << 2) | ((g / count) >> 4));
+                    uint8_t B = (uint8_t)(((b / count) << 3) | ((b / count) >> 2));
+                    d[dy * buffer.stride + dx] = (0xFF << 24) | (R << 16) | (G << 8) | B;
+                }
             }
         }
     } else {
-        // RGBA_8888: direct row copy (handling stride differences)
-        const int copy_bytes = std::min(guest_width_, buffer.width) * 4;
-        for (int y = 0; y < guest_height_ && y < buffer.height; ++y) {
-            memcpy(
-                dst + y * dst_stride_bytes,
-                src + y * guest_stride_,
-                copy_bytes
-            );
+        // Unknown format: nearest-neighbor passthrough at native res.
+        const int copy_w = std::min(src_w, buffer.width);
+        const int copy_h = std::min(src_h, buffer.height);
+        for (int y = 0; y < copy_h && y < draw_h; ++y) {
+            memcpy(dst + y * dst_stride_bytes, src + y * guest_stride_, copy_w * 4);
+        }
+    }
+
+    // Clear any area of the window not covered by the (possibly downscaled) frame.
+    if (draw_h < buffer.height) {
+        std::memset(dst + draw_h * dst_stride_bytes, 0,
+                    (size_t)(buffer.height - draw_h) * dst_stride_bytes);
+    }
+    if (draw_w < buffer.width) {
+        for (int y = 0; y < draw_h; ++y) {
+            std::memset(dst + y * dst_stride_bytes + draw_w * 4, 0,
+                        (size_t)(buffer.width - draw_w) * 4);
         }
     }
 
@@ -197,13 +285,13 @@ bool FramebufferBridge::blit_to_window() {
 bool FramebufferBridge::start_render_loop() {
     if (rendering_.load()) return true;
     if (!is_open()) {
-        VINE_LOGE("start_render_loop: framebuffer not open");
+        YPSILON_LOGE("start_render_loop: framebuffer not open");
         return false;
     }
     rendering_.store(true);
 
     render_thread_ = std::thread([this]() {
-        VINE_LOGI("FramebufferBridge[%s]: render loop started", instance_id_.c_str());
+        YPSILON_LOGI("FramebufferBridge[%s]: render loop started", instance_id_.c_str());
 
         // A Looper is required on this thread so AChoreographer's internal handler can dispatch callbacks when pumped below
         ALooper_prepare(0);
@@ -215,7 +303,7 @@ bool FramebufferBridge::start_render_loop() {
             ALooper_pollOnce(16, nullptr, nullptr, nullptr);
         }
 
-        VINE_LOGI("FramebufferBridge[%s]: render loop stopped", instance_id_.c_str());
+        YPSILON_LOGI("FramebufferBridge[%s]: render loop stopped", instance_id_.c_str());
     });
 
     return true;
@@ -255,4 +343,4 @@ void FramebufferBridge::convert_rgb565_to_rgba8888(
     }
 }
 
-} // namespace vine::display
+} // namespace ypsilon::display

@@ -1,4 +1,4 @@
-# VineOS Documentation
+# YpsilonOS Documentation
 
 A guide to every document in this folder.
 
@@ -9,7 +9,7 @@ A guide to every document in this folder.
 
 ## For developers
 
-- **[ARCHITECTURE.md](ARCHITECTURE.md)**: how VineOS is built, the Kotlin
+- **[ARCHITECTURE.md](ARCHITECTURE.md)**: how YpsilonOS is built, the Kotlin
   app layers, the C++ native runtime, JNI bridge, instance lifecycle,
   display and input pipelines, ABI compatibility, and CI/CD.
 - **[BUILDING.md](BUILDING.md)**: building the Android app, cross-compiling

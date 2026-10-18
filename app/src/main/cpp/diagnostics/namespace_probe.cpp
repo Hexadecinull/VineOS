@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include "../utils/vine_log.h"
 
-namespace vine::diagnostics {
+namespace ypsilon::diagnostics {
 
 namespace {
 struct ProbeWireResult { int unshare_ok; int unshare_errno; int mount_ok; int mount_errno; };
@@ -19,11 +19,11 @@ NamespaceProbeResult probe_namespace_support() {
     result.caller_uid = (int)getuid();
 
     int pipefd[2];
-    if (pipe(pipefd) != 0) { VINE_LOGE_ERRNO("pipe"); return result; }
+    if (pipe(pipefd) != 0) { YPSILON_LOGE_ERRNO("pipe"); return result; }
 
     pid_t pid = fork();
     if (pid < 0) {
-        VINE_LOGE_ERRNO("fork");
+        YPSILON_LOGE_ERRNO("fork");
         close(pipefd[0]);
         close(pipefd[1]);
         return result;
@@ -63,11 +63,11 @@ NamespaceProbeResult probe_namespace_support() {
     return result;
 }
 
-} // namespace vine::diagnostics
+} // namespace ypsilon::diagnostics
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_hexadecinull_vineos_shizuku_VineShizukuService_nativeProbeNamespaces(JNIEnv* env, jobject) {
-    auto r = vine::diagnostics::probe_namespace_support();
+Java_com_ypsilonos_android_shizuku_YpsilonShizukuService_nativeProbeNamespaces(JNIEnv* env, jobject) {
+    auto r = ypsilon::diagnostics::probe_namespace_support();
     char buf[256];
     snprintf(buf, sizeof(buf), "unshare_ok=%d;unshare_errno=%d;mount_ok=%d;mount_errno=%d;uid=%d",
               r.unshare_ok ? 1 : 0, r.unshare_errno, r.mount_ok ? 1 : 0, r.mount_errno, r.caller_uid);

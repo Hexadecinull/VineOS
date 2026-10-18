@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace vine::diagnostics {
+namespace ypsilon::diagnostics {
 
 struct NamespaceProbeResult {
     bool unshare_ok = false;
@@ -14,4 +14,4 @@ struct NamespaceProbeResult {
 // Attempts unshare(CLONE_NEWNS|CLONE_NEWPID|CLONE_NEWUTS|CLONE_NEWIPC) and a private-mount remount, both from a disposable forked child, to check whether the calling process's privilege level (root, shell/ADB, or plain app) can do what the container engine needs
 NamespaceProbeResult probe_namespace_support();
 
-} // namespace vine::diagnostics
+} // namespace ypsilon::diagnostics

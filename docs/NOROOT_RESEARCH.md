@@ -2,7 +2,7 @@
 
 Notes toward Phase 4 (`docs/../README.md` roadmap). Not implemented yet;
 this is a technical brief to decide *whether* the Shizuku/Virtual Master
-technique gets VineOS far enough to be worth building, before committing
+technique gets YpsilonOS far enough to be worth building, before committing
 engineering time to it.
 
 ## What Virtual Master and Shizuku actually do
@@ -38,9 +38,9 @@ older versions need a one-time PC-based `adb` pair.
 
 I pulled the current AOSP `system/sepolicy` source directly rather than
 going on secondhand descriptions, since this is the part that decides
-whether the technique is useful for VineOS specifically.
+whether the technique is useful for YpsilonOS specifically.
 
-**Confirmed: `untrusted_app` (what VineOS's own process runs as today)
+**Confirmed: `untrusted_app` (what YpsilonOS's own process runs as today)
 is flatly blocked from cgroups, full stop:**
 
 ```
@@ -51,7 +51,7 @@ neverallow all_untrusted_apps cgroup_v2:file *;
 
 This directly affects the RAM/CPU cgroup limiting added in the last
 round of changes (`Container::setup_resource_limits()`): on a stock
-device with SELinux enforcing, that code cannot work from VineOS's own
+device with SELinux enforcing, that code cannot work from YpsilonOS's own
 process, full stop — no capability workaround fixes an SELinux
 `neverallow`. It's consistent with the project's own documented
 "currently requires CAP_SYS_ADMIN" status; I'm calling it out
@@ -77,7 +77,7 @@ cgroup write itself, rather than the shell process writing cgroup files
 directly.
 
 **Not confirmed either way: whether shell can `mount()` / `pivot_root()`
-/ `unshare()` the namespace types VineOS's container engine needs.**
+/ `unshare()` the namespace types YpsilonOS's container engine needs.**
 I did not find an explicit capability grant (`allow shell self:capability
 sys_admin`) in `shell.te`, and didn't find a `neverallow` blocking it for
 app domains either, in the files I was able to pull. This needs an
@@ -106,7 +106,7 @@ today.
 
 ## Net assessment
 
-- The shell/Wireless-Debugging route is real and gets VineOS a
+- The shell/Wireless-Debugging route is real and gets YpsilonOS a
   meaningfully more privileged domain than a plain app, for free, with
   no root prompt. But based on what I could verify from the actual
   policy source, it does **not** obviously clear the specific bar
@@ -143,7 +143,7 @@ child so the probe can't leave the long-lived service process in a
 half-unshared state. It reports back which of the two succeeded and the
 `errno` for whichever didn't, straight to the Settings screen. See
 `app/src/main/cpp/diagnostics/namespace_probe.cpp` and
-`app/src/main/java/com/hexadecinull/vineos/shizuku/` for the
+`app/src/main/java/com/ypsilonos/vineos/shizuku/` for the
 implementation.
 
 This turns the open question from source-reading into a one-tap check

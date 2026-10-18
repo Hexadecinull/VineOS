@@ -7,9 +7,9 @@
 #include <unordered_map>
 #include <sys/types.h>
 
-namespace vine {
+namespace ypsilon {
 
-// Config for a single VineOS container instance.
+// Config for a single YpsilonOS container instance.
 struct ContainerConfig {
     std::string instance_id;
     std::string instance_path;      // Root of the instance data directory
@@ -29,7 +29,7 @@ enum class ContainerStatus {
     PAUSED  = 4,
 };
 
-// Manages the lifecycle of a single VineOS guest container: namespace setup, rootfs mounting, QEMU binfmt_misc registration on arm64-only hosts, and launching Android init as PID 1; not thread-safe, call from a single background thread (VineService's dispatcher)
+// Manages the lifecycle of a single YpsilonOS guest container: namespace setup, rootfs mounting, QEMU binfmt_misc registration on arm64-only hosts, and launching Android init as PID 1; not thread-safe, call from a single background thread (YpsilonService's dispatcher)
 class Container {
 public:
     explicit Container(ContainerConfig config);
@@ -55,6 +55,9 @@ public:
     pid_t init_pid() const { return init_pid_; }
 
     const std::string& instance_id() const { return config_.instance_id; }
+
+    // Guest rootfs mount path (empty until the container has started).
+    const std::string& rootfs_path() const { return config_.rootfs_mount_path; }
 
     // FD of the guest virtual framebuffer, or -1 if not set up yet.
     int framebuffer_fd() const { return framebuffer_fd_; }
@@ -117,4 +120,4 @@ private:
     bool initialized_ = false;
 };
 
-} // namespace vine
+} // namespace ypsilon

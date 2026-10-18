@@ -2,7 +2,7 @@
 
 ## Our Pledge
 
-We as contributors and maintainers pledge to make participation in VineOS a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, sex characteristics, gender identity, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
+We as contributors and maintainers pledge to make participation in YpsilonOS a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, sex characteristics, gender identity, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
 
 We pledge to act in ways that contribute to an open, welcoming, diverse, inclusive, and healthy community.
 
@@ -38,7 +38,7 @@ This Code of Conduct applies within all project spaces, and also applies when an
 
 Instances of abusive, harassing, or otherwise unacceptable behaviour may be reported by opening a private security advisory at:
 
-**https://github.com/Hexadecinull/VineOS/security/advisories/new**
+**https://github.com/Hexadecinull/YpsilonOS/security/advisories/new**
 
 All complaints will be reviewed and investigated promptly and fairly. Maintainers are obligated to maintain confidentiality with regard to the reporter of an incident.
 

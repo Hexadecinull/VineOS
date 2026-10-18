@@ -98,14 +98,14 @@ jobs:
       - name: Rename APKs with version tag
         run: |
           VERSION="${{ github.event.inputs.version_tag }}"
-          cp app/build/outputs/apk/release/app-release.apk "VineOS-${VERSION}.apk"
-          cp app/build/outputs/apk/debug/app-debug.apk "VineOS-${VERSION}-debug.apk"
+          cp app/build/outputs/apk/release/app-release.apk "YpsilonOS-${VERSION}.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "YpsilonOS-${VERSION}-debug.apk"
 
       - name: Upload signed APK artifacts
         uses: actions/upload-artifact@v7
         with:
           name: release-apk-${{ github.event.inputs.version_tag }}
-          path: VineOS-*.apk
+          path: YpsilonOS-*.apk
           retention-days: 90
 
   create-release:
@@ -139,7 +139,7 @@ jobs:
         run: |
           NOTES="${{ github.event.inputs.release_notes }}"
           {
-            echo "## VineOS ${{ github.event.inputs.version_tag }}"
+            echo "## YpsilonOS ${{ github.event.inputs.version_tag }}"
             echo ""
             echo "$NOTES"
             echo ""
@@ -155,10 +155,10 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.event.inputs.version_tag }}
-          name: "VineOS ${{ github.event.inputs.version_tag }}"
+          name: "YpsilonOS ${{ github.event.inputs.version_tag }}"
           body_path: release_body.md
           draft: false
           prerelease: ${{ github.event.inputs.is_prerelease }}
-          files: release/VineOS-*.apk
+          files: release/YpsilonOS-*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

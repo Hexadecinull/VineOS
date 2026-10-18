@@ -8,7 +8,7 @@
 | Tagged releases | Critical fixes backported |
 | Older releases | No longer supported |
 
-VineOS is pre-1.0. Once 1.0 is released, this policy will be updated to
+YpsilonOS is pre-1.0. Once 1.0 is released, this policy will be updated to
 cover the current stable release and the previous minor version.
 
 ## Reporting a Vulnerability
@@ -17,7 +17,7 @@ cover the current stable release and the previous minor version.
 
 Report security issues privately via GitHub's security advisory feature:
 
-**[Report a vulnerability](https://github.com/Hexadecinull/VineOS/security/advisories/new)**
+**[Report a vulnerability](https://github.com/Hexadecinull/YpsilonOS/security/advisories/new)**
 
 Please include:
 
@@ -42,9 +42,9 @@ In scope:
 
 - Container namespace escape (guest process reaching the host filesystem or processes)
 - QEMU binfmt_misc misconfiguration enabling arbitrary code execution on the host
-- VineRuntime JNI vulnerabilities allowing privilege escalation
+- YpsilonRuntime JNI vulnerabilities allowing privilege escalation
 - ROM download integrity bypass (SHA-256 verification)
-- VineService foreground service abuse
+- YpsilonService foreground service abuse
 
 Out of scope:
 
@@ -64,13 +64,13 @@ review of security-sensitive changes.
 
 ## Security Design Notes
 
-VineOS uses Linux namespaces (PID, mount, UTS, IPC) for guest isolation.
+YpsilonOS uses Linux namespaces (PID, mount, UTS, IPC) for guest isolation.
 This provides meaningful but not absolute isolation; it is not a
 hypervisor. The security model assumes:
 
 1. The host device is not rooted by an attacker (the attacker has normal
    Android app sandbox privileges)
-2. The guest ROM image is trusted (downloaded and SHA-256 verified by VineOS)
+2. The guest ROM image is trusted (downloaded and SHA-256 verified by YpsilonOS)
 3. SELinux is enforcing on the host
 
 Root-required features (Magisk inside instances) are opt-in and explicitly

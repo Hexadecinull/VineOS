@@ -18,13 +18,13 @@
 
 #define vine_pivot_root(new_root, put_old) syscall(SYS_pivot_root, new_root, put_old)
 
-namespace vine {
+namespace ypsilon {
 
 Container::Container(ContainerConfig config) : config_(std::move(config)) {}
 
 Container::~Container() {
     if (status_ == ContainerStatus::RUNNING || status_ == ContainerStatus::BOOTING) {
-        VINE_LOGW("Container %s destroyed while running, force-killing", config_.instance_id.c_str());
+        YPSILON_LOGW("Container %s destroyed while running, force-killing", config_.instance_id.c_str());
         kill_now();
     }
 }
@@ -53,11 +53,11 @@ Container& Container::operator=(Container&& o) noexcept {
 }
 
 bool Container::start() {
-    VINE_LOGI("Container::start(), %s", config_.instance_id.c_str());
+    YPSILON_LOGI("Container::start(), %s", config_.instance_id.c_str());
     status_ = ContainerStatus::BOOTING;
 
     if (!mkdirs(config_.rootfs_mount_path)) {
-        VINE_LOGE("Failed to create rootfs mount point: %s", config_.rootfs_mount_path.c_str());
+        YPSILON_LOGE("Failed to create rootfs mount point: %s", config_.rootfs_mount_path.c_str());
         status_ = ContainerStatus::ERROR;
         return false;
     }
@@ -66,16 +66,16 @@ bool Container::start() {
     if (!setup_dev_nodes()) { teardown_mounts(); status_ = ContainerStatus::ERROR; return false; }
 
     if (config_.needs_qemu_32bit && !setup_binfmt_misc()) {
-        VINE_LOGW("binfmt_misc setup failed, 32-bit apps will not work");
+        YPSILON_LOGW("binfmt_misc setup failed, 32-bit apps will not work");
     }
 
     if (!launch_init()) { teardown_mounts(); status_ = ContainerStatus::ERROR; return false; }
 
     if (!setup_resource_limits()) {
-        VINE_LOGW("Resource limits not applied for %s (host cgroups not writable?)", config_.instance_id.c_str());
+        YPSILON_LOGW("Resource limits not applied for %s (host cgroups not writable?)", config_.instance_id.c_str());
     }
 
-    VINE_LOGI("Container %s started, init PID=%d", config_.instance_id.c_str(), init_pid_);
+    YPSILON_LOGI("Container %s started, init PID=%d", config_.instance_id.c_str(), init_pid_);
     status_ = ContainerStatus::RUNNING;
     return true;
 }
@@ -104,23 +104,23 @@ void Container::kill_now() {
 
 bool Container::mount_rootfs() {
     int loop_ctl_fd = open("/dev/loop-control", O_RDWR | O_CLOEXEC);
-    if (loop_ctl_fd < 0) { VINE_LOGE_ERRNO("open(/dev/loop-control)"); return false; }
+    if (loop_ctl_fd < 0) { YPSILON_LOGE_ERRNO("open(/dev/loop-control)"); return false; }
 
     int loop_num = ioctl(loop_ctl_fd, LOOP_CTL_GET_FREE);
     close(loop_ctl_fd);
-    if (loop_num < 0) { VINE_LOGE("LOOP_CTL_GET_FREE failed: %s", strerror(errno)); return false; }
+    if (loop_num < 0) { YPSILON_LOGE("LOOP_CTL_GET_FREE failed: %s", strerror(errno)); return false; }
 
     std::string loop_dev = "/dev/loop" + std::to_string(loop_num);
 
     int img_fd = open(config_.rootfs_image_path.c_str(), O_RDWR | O_CLOEXEC);
     if (img_fd < 0) img_fd = open(config_.rootfs_image_path.c_str(), O_RDONLY | O_CLOEXEC);
-    if (img_fd < 0) { VINE_LOGE_ERRNO("open(rootfs_image)"); return false; }
+    if (img_fd < 0) { YPSILON_LOGE_ERRNO("open(rootfs_image)"); return false; }
 
     int loop_fd = open(loop_dev.c_str(), O_RDWR | O_CLOEXEC);
-    if (loop_fd < 0) { VINE_LOGE_ERRNO("open(loop_dev)"); close(img_fd); return false; }
+    if (loop_fd < 0) { YPSILON_LOGE_ERRNO("open(loop_dev)"); close(img_fd); return false; }
 
     if (ioctl(loop_fd, LOOP_SET_FD, img_fd) < 0) {
-        VINE_LOGE_ERRNO("LOOP_SET_FD");
+        YPSILON_LOGE_ERRNO("LOOP_SET_FD");
         close(loop_fd); close(img_fd);
         return false;
     }
@@ -133,7 +133,7 @@ bool Container::mount_rootfs() {
 
     if (mount(loop_dev.c_str(), config_.rootfs_mount_path.c_str(), "ext4", MS_RELATIME, "errors=remount-ro") != 0) {
         if (mount(loop_dev.c_str(), config_.rootfs_mount_path.c_str(), "squashfs", MS_RDONLY, nullptr) != 0) {
-            VINE_LOGE_ERRNO("mount(rootfs)");
+            YPSILON_LOGE_ERRNO("mount(rootfs)");
             return false;
         }
     }
@@ -160,7 +160,7 @@ bool Container::setup_bind_mounts() {
         std::string target = root + e.suffix;
         mkdirs(target);
         if (mount(e.src, target.c_str(), e.fs, e.flags, e.data) != 0) {
-            VINE_LOGW("mount(%s → %s): %s", e.src, target.c_str(), strerror(errno));
+            YPSILON_LOGW("mount(%s → %s): %s", e.src, target.c_str(), strerror(errno));
         }
     }
 
@@ -168,7 +168,7 @@ bool Container::setup_bind_mounts() {
     int bfd = open(guest_binder.c_str(), O_CREAT | O_WRONLY | O_CLOEXEC, 0600);
     if (bfd >= 0) close(bfd);
     if (mount("/dev/binder", guest_binder.c_str(), nullptr, MS_BIND, nullptr) != 0) {
-        VINE_LOGW("bind-mount /dev/binder: %s", strerror(errno));
+        YPSILON_LOGW("bind-mount /dev/binder: %s", strerror(errno));
     }
 
     // /dev/ashmem was dropped from many post-Android-10 GKI host kernels; old guests that call real ashmem ioctls will fail hard without it, so this is best-effort and silently skipped if the host doesn't have it
@@ -177,10 +177,10 @@ bool Container::setup_bind_mounts() {
         int afd = open(guest_ashmem.c_str(), O_CREAT | O_WRONLY | O_CLOEXEC, 0600);
         if (afd >= 0) close(afd);
         if (mount("/dev/ashmem", guest_ashmem.c_str(), nullptr, MS_BIND, nullptr) != 0) {
-            VINE_LOGW("bind-mount /dev/ashmem: %s", strerror(errno));
+            YPSILON_LOGW("bind-mount /dev/ashmem: %s", strerror(errno));
         }
     } else {
-        VINE_LOGW("host has no /dev/ashmem; guests that don't use the memfd-based ashmem shim will likely fail");
+        YPSILON_LOGW("host has no /dev/ashmem; guests that don't use the memfd-based ashmem shim will likely fail");
     }
     return true;
 }
@@ -201,7 +201,7 @@ bool Container::setup_dev_nodes() {
     for (const auto& n : nodes) {
         std::string path = dev + "/" + n.name;
         if (mknod(path.c_str(), n.mode, n.rdev) != 0 && errno != EEXIST) {
-            VINE_LOGW("mknod(%s): %s", path.c_str(), strerror(errno));
+            YPSILON_LOGW("mknod(%s): %s", path.c_str(), strerror(errno));
         }
     }
     symlink("/proc/self/fd",   (dev + "/fd").c_str());
@@ -213,7 +213,7 @@ bool Container::setup_dev_nodes() {
 
 bool Container::setup_binfmt_misc() {
     if (config_.qemu_arm_path.empty() || !path_exists(config_.qemu_arm_path)) {
-        VINE_LOGE("qemu-arm not found at: %s", config_.qemu_arm_path.c_str());
+        YPSILON_LOGE("qemu-arm not found at: %s", config_.qemu_arm_path.c_str());
         return false;
     }
 
@@ -221,14 +221,14 @@ bool Container::setup_binfmt_misc() {
     int fd = open(guest_qemu.c_str(), O_CREAT | O_WRONLY | O_CLOEXEC, 0755);
     if (fd >= 0) close(fd);
     if (mount(config_.qemu_arm_path.c_str(), guest_qemu.c_str(), nullptr, MS_BIND | MS_RDONLY, nullptr) != 0) {
-        VINE_LOGE_ERRNO("bind-mount qemu-arm");
+        YPSILON_LOGE_ERRNO("bind-mount qemu-arm");
         return false;
     }
 
     const std::string binfmt_path = "/proc/sys/fs/binfmt_misc";
     if (!path_exists(binfmt_path + "/register")) {
         if (mount("binfmt_misc", binfmt_path.c_str(), "binfmt_misc", MS_NODEV|MS_NOEXEC|MS_NOSUID, nullptr) != 0) {
-            VINE_LOGE_ERRNO("mount(binfmt_misc)");
+            YPSILON_LOGE_ERRNO("mount(binfmt_misc)");
             return false;
         }
     }
@@ -243,17 +243,17 @@ bool Container::setup_binfmt_misc() {
 
     if (!write_file(binfmt_path + "/register", rule)) {
         if (path_exists(binfmt_path + "/arm")) return true;
-        VINE_LOGE("Failed to register ARMv7 binfmt_misc rule");
+        YPSILON_LOGE("Failed to register ARMv7 binfmt_misc rule");
         return false;
     }
-    VINE_LOGI("ARMv7 binfmt_misc registered → %s", config_.qemu_arm_path.c_str());
+    YPSILON_LOGI("ARMv7 binfmt_misc registered → %s", config_.qemu_arm_path.c_str());
     return true;
 }
 
 bool Container::launch_init() {
     const std::string init_path = config_.rootfs_mount_path + "/init";
     if (!path_exists(init_path)) {
-        VINE_LOGE("Android init not found at %s", init_path.c_str());
+        YPSILON_LOGE("Android init not found at %s", init_path.c_str());
         return false;
     }
 
@@ -261,7 +261,7 @@ bool Container::launch_init() {
     const bool has_hw_rc = path_exists(config_.rootfs_mount_path + "/init.vine.rc");
 
     pid_t pid = fork();
-    if (pid < 0) { VINE_LOGE_ERRNO("fork"); return false; }
+    if (pid < 0) { YPSILON_LOGE_ERRNO("fork"); return false; }
 
     if (pid == 0) {
         // binder_linux warns/rejects transactions from threads with a negative nice value unless RLIMIT_NICE allows raising priority back to 0; Anbox and Waydroid both set this before exec
@@ -269,21 +269,21 @@ bool Container::launch_init() {
         setrlimit(RLIMIT_NICE, &rl);
 
         int ns_flags = CLONE_NEWPID | CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWIPC;
-        if (unshare(ns_flags) != 0) { VINE_LOGE_ERRNO("unshare"); _exit(1); }
+        if (unshare(ns_flags) != 0) { YPSILON_LOGE_ERRNO("unshare"); _exit(1); }
 
         const std::string hostname = "vine-" + config_.instance_id.substr(0, 8);
         sethostname(hostname.c_str(), hostname.size());
 
         if (mount("none", "/", nullptr, MS_REC | MS_PRIVATE, nullptr) != 0) {
-            VINE_LOGE_ERRNO("MS_PRIVATE"); _exit(1);
+            YPSILON_LOGE_ERRNO("MS_PRIVATE"); _exit(1);
         }
 
         const std::string put_old = config_.rootfs_mount_path + "/.old_root";
         mkdirs(put_old);
         if (vine_pivot_root(config_.rootfs_mount_path.c_str(), put_old.c_str()) != 0) {
-            VINE_LOGE_ERRNO("pivot_root");
+            YPSILON_LOGE_ERRNO("pivot_root");
             if (chroot(config_.rootfs_mount_path.c_str()) != 0) {
-                VINE_LOGE_ERRNO("chroot fallback"); _exit(1);
+                YPSILON_LOGE_ERRNO("chroot fallback"); _exit(1);
             }
         } else {
             umount2("/.old_root", MNT_DETACH);
@@ -291,7 +291,7 @@ bool Container::launch_init() {
         }
         chdir("/");
 
-        // A minimal, guest-appropriate environment; execl would otherwise inherit VineOS's own app process environment, which is meaningless (and potentially confusing) inside the guest
+        // A minimal, guest-appropriate environment; execl would otherwise inherit YpsilonOS's own app process environment, which is meaningless (and potentially confusing) inside the guest
         const char* envp[] = {
             "PATH=/system/bin:/system/xbin:/vendor/bin",
             "ANDROID_ROOT=/system",
@@ -306,12 +306,12 @@ bool Container::launch_init() {
             const char* argv[] = { "/init", "androidboot.selinux=permissive", nullptr };
             execve("/init", const_cast<char* const*>(argv), const_cast<char* const*>(envp));
         }
-        VINE_LOGE_ERRNO("execve(/init)");
+        YPSILON_LOGE_ERRNO("execve(/init)");
         _exit(1);
     }
 
     init_pid_ = pid;
-    VINE_LOGI("Guest init launched, host PID=%d", init_pid_);
+    YPSILON_LOGI("Guest init launched, host PID=%d", init_pid_);
     return true;
 }
 
@@ -339,7 +339,7 @@ bool Container::setup_resource_limits() {
     if (path_exists("/sys/fs/cgroup/cgroup.controllers")) {
         const std::string cg = "/sys/fs/cgroup/" + tag;
         if (!mkdirs(cg)) {
-            VINE_LOGW("mkdir(%s) failed, resource limits skipped", cg.c_str());
+            YPSILON_LOGW("mkdir(%s) failed, resource limits skipped", cg.c_str());
             return false;
         }
         if (config_.ram_mb > 0) {
@@ -363,7 +363,7 @@ bool Container::setup_resource_limits() {
             cgroup_paths_.push_back(cg);
             applied = true;
         } else {
-            VINE_LOGW("cgroup v1 memory limit not applied for %s", config_.instance_id.c_str());
+            YPSILON_LOGW("cgroup v1 memory limit not applied for %s", config_.instance_id.c_str());
         }
     }
     if (config_.cpu_cores > 0 && path_exists("/sys/fs/cgroup/cpu")) {
@@ -376,7 +376,7 @@ bool Container::setup_resource_limits() {
             cgroup_paths_.push_back(cg);
             applied = true;
         } else {
-            VINE_LOGW("cgroup v1 CPU limit not applied for %s", config_.instance_id.c_str());
+            YPSILON_LOGW("cgroup v1 CPU limit not applied for %s", config_.instance_id.c_str());
         }
     }
     return applied;
@@ -385,14 +385,14 @@ bool Container::setup_resource_limits() {
 void Container::teardown_cgroups() {
     for (const auto& cg : cgroup_paths_) {
         if (rmdir(cg.c_str()) != 0) {
-            VINE_LOGW("rmdir(%s): %s", cg.c_str(), strerror(errno));
+            YPSILON_LOGW("rmdir(%s): %s", cg.c_str(), strerror(errno));
         }
     }
     cgroup_paths_.clear();
 }
 
 std::string Container::diagnostics() const {
-    std::string out = "=== VineOS Diagnostics ===\n";
+    std::string out = "=== YpsilonOS Diagnostics ===\n";
     out += "Instance : " + config_.instance_id + "\n";
     out += "Status   : " + std::to_string((int)status_) + "\n";
     out += "Init PID : " + std::to_string(init_pid_) + "\n";
@@ -416,7 +416,7 @@ bool NamespaceManager::init(const std::string& data_dir, const std::string& nati
     data_dir_ = data_dir;
     native_lib_dir_ = native_lib_dir;
     initialized_ = true;
-    VINE_LOGI("NamespaceManager initialized. data=%s libs=%s", data_dir.c_str(), native_lib_dir.c_str());
+    YPSILON_LOGI("NamespaceManager initialized. data=%s libs=%s", data_dir.c_str(), native_lib_dir.c_str());
     return true;
 }
 
@@ -427,7 +427,7 @@ void NamespaceManager::shutdown() {
 }
 
 int64_t NamespaceManager::start_container(const ContainerConfig& config) {
-    if (!initialized_) { VINE_LOGE("NamespaceManager not initialized"); return 0; }
+    if (!initialized_) { YPSILON_LOGE("NamespaceManager not initialized"); return 0; }
     int64_t handle = next_handle_++;
     auto [it, ok] = containers_.emplace(handle, Container(config));
     if (!ok) return 0;
@@ -454,4 +454,4 @@ void NamespaceManager::remove_container(int64_t handle) {
     containers_.erase(handle);
 }
 
-} // namespace vine
+} // namespace ypsilon

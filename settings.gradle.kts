@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "VineOS"
+rootProject.name = "YpsilonOS"
 include(":app")

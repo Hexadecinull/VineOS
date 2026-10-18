@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: 💬 Discussions
-    url: https://github.com/Hexadecinull/VineOS/discussions
-    about: Ask questions, share ideas, and discuss VineOS in general
+    url: https://github.com/yubiiixtreme/YpsilonOS-Android/discussions
+    about: Ask questions, share ideas, and discuss YpsilonOS in general
   - name: 🔒 Security vulnerability
-    url: https://github.com/Hexadecinull/VineOS/security/advisories/new
+    url: https://github.com/yubiiixtreme/YpsilonOS-Android/security/advisories/new
     about: Report a security vulnerability privately

@@ -1,4 +1,4 @@
-# Setting up and running VineOS releases
+# Setting up and running YpsilonOS releases
 
 Everything needed to get `.github/workflows/release.yml` working, from
 zero to a signed APK attached to a GitHub Release. This is the guide
@@ -99,8 +99,8 @@ happening automatically the moment a tag lands.
 
 - The GitHub Release itself: repo → **Releases** tab, tagged with
   whatever version you entered.
-- Two APKs attached to it: `VineOS-<version>.apk` (the one to
-  actually install) and `VineOS-<version>-debug.apk` (debuggable,
+- Two APKs attached to it: `YpsilonOS-<version>.apk` (the one to
+  actually install) and `YpsilonOS-<version>-debug.apk` (debuggable,
   for troubleshooting only).
 - Workflow artifacts (same two APKs, useful if you want them without
   digging through the Releases page): the workflow run's **Summary**

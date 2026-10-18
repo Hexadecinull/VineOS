@@ -18,15 +18,15 @@ plugins {
 }
 
 android {
-    namespace = "com.hexadecinull.vineos"
+    namespace = "com.ypsilonos.android"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.hexadecinull.vineos"
+        applicationId = "com.ypsilonos.android"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0-alpha"
+        versionCode = 3
+        versionName = "0.3.0-ypsilonos"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

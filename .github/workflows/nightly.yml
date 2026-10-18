@@ -17,7 +17,7 @@ jobs:
       contents: read
       issues: write
     if: |
-      github.repository == 'Hexadecinull/VineOS' &&
+      github.repository == 'yubiiixtreme/YpsilonOS-Android' &&
       (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
 
     steps:
@@ -53,11 +53,11 @@ jobs:
       - name: Rename APK
         run: |
           cp app/build/outputs/apk/debug/app-debug.apk \
-             "VineOS-nightly-${{ steps.meta.outputs.date }}-${{ steps.meta.outputs.sha }}.apk"
+             "YpsilonOS-nightly-${{ steps.meta.outputs.date }}-${{ steps.meta.outputs.sha }}.apk"
 
       - name: Upload nightly APK
         uses: actions/upload-artifact@v7
         with:
           name: nightly-${{ steps.meta.outputs.sha }}
-          path: VineOS-nightly-*.apk
+          path: YpsilonOS-nightly-*.apk
           retention-days: 7

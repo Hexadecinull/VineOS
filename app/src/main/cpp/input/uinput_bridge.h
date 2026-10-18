@@ -4,7 +4,7 @@
 #include <functional>
 #include <sys/types.h>
 
-namespace vine::input {
+namespace ypsilon::input {
 
 struct TouchPoint {
     int slot;   // Multitouch slot index (0-9)
@@ -15,7 +15,7 @@ struct TouchPoint {
 
 enum class TouchAction { DOWN = 0, MOVE = 1, UP = 2 };
 
-// Creates a virtual touchscreen inside the guest via Linux uinput, registered as a multitouch type B device; host events come in through VineRuntime's JNI layer and get written to /dev/uinput as input_event structs
+// Creates a virtual touchscreen inside the guest via Linux uinput, registered as a multitouch type B device; host events come in through YpsilonRuntime's JNI layer and get written to /dev/uinput as input_event structs
 class UInputBridge {
 public:
     static constexpr int kMaxSlots = 10;
@@ -72,4 +72,4 @@ private:
     void sync(); // Writes a SYN_REPORT to flush the current event batch.
 };
 
-} // namespace vine::input
+} // namespace ypsilon::input

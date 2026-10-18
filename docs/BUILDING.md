@@ -1,6 +1,6 @@
-# Building VineOS
+# Building YpsilonOS
 
-This covers building VineOS from source: the Android app (Kotlin + NDK), the
+This covers building YpsilonOS from source: the Android app (Kotlin + NDK), the
 `qemu-arm` static binaries (one per host ABI), and AOSP ROM images.
 
 ## Table of Contents
@@ -24,7 +24,7 @@ This covers building VineOS from source: the Android app (Kotlin + NDK), the
 | JDK | 17 | Bundled with Android Studio, do not substitute a different JDK |
 | Git | Any recent | |
 
-VineOS targets `compileSdk`/`targetSdk` 37 (Android 17) with `minSdk` 26
+YpsilonOS targets `compileSdk`/`targetSdk` 37 (Android 17) with `minSdk` 26
 (Android 8.0). Gradle 9.5+ and AGP 9.2+ are required; AGP 9 compiles Kotlin
 directly (no separate `org.jetbrains.kotlin.android` plugin), so an older
 AGP will not sync this project.
@@ -53,11 +53,11 @@ AGP will not sync this project.
 ### 1. Clone and open
 
 ```bash
-git clone https://github.com/Hexadecinull/VineOS.git
-cd VineOS
+git clone https://github.com/Hexadecinull/YpsilonOS.git
+cd YpsilonOS
 ```
 
-Open the `VineOS/` directory in Android Studio, let Gradle sync finish, and
+Open the `YpsilonOS/` directory in Android Studio, let Gradle sync finish, and
 install any SDK components it prompts for (Android SDK Platform 37, NDK r27,
 CMake 3.22.1).
 
@@ -90,9 +90,9 @@ and `app/build.gradle.kts` picks it up automatically. Without it,
 
 ### Why it's needed, and why there's more than one binary now
 
-VineOS bundles a statically linked `qemu-arm` binary that lets the guest run
+YpsilonOS bundles a statically linked `qemu-arm` binary that lets the guest run
 32-bit ARM (armeabi-v7a) code on hosts whose CPU doesn't support AArch32
-execution. Since VineOS now supports running on `arm64-v8a`, `armeabi-v7a`,
+execution. Since YpsilonOS now supports running on `arm64-v8a`, `armeabi-v7a`,
 `x86_64`, and `x86` host devices (see `AbiCompat.kt` and
 [ARCHITECTURE.md](ARCHITECTURE.md#abi-compatibility)), `qemu-arm` needs to be
 cross-compiled once **per host ABI** so each one gets a binary it can execute
@@ -186,7 +186,7 @@ mkdir -p app/src/main/jniLibs/arm64-v8a/
 cp build-android-arm64/qemu-arm app/src/main/jniLibs/arm64-v8a/libqemu_arm.so
 ```
 
-At runtime, VineOS finds it via `context.applicationInfo.nativeLibraryDir +
+At runtime, YpsilonOS finds it via `context.applicationInfo.nativeLibraryDir +
 "/libqemu_arm.so"`, which resolves to the copy matching the device's own
 primary ABI automatically, no Kotlin-side ABI branching needed.
 
@@ -197,11 +197,11 @@ primary ABI automatically, no Kotlin-side ABI branching needed.
 
 This is advanced and resource-intensive. Most contributors won't need to do
 this; ROM images only need building once per Android version and are then
-distributed via the VineOS CDN.
+distributed via the YpsilonOS CDN.
 
 ### Overview
 
-VineOS ROM images are minimal AOSP system images targeting the `ranchu`
+YpsilonOS ROM images are minimal AOSP system images targeting the `ranchu`
 virtual device (the same reference virtual hardware platform the Android
 Emulator uses), stripped of unnecessary apps and services.
 
@@ -243,7 +243,7 @@ cd ~/aosp-7
 source build/envsetup.sh
 lunch aosp_arm64-userdebug   # dual-ABI: arm64-v8a + armeabi-v7a in the guest
 
-git apply ../VineOS/rom-patches/android-7/*.patch
+git apply ../YpsilonOS/rom-patches/android-7/*.patch
 
 make -j$(nproc) 2>&1 | tee build.log
 # Produces system.img, ramdisk.img, kernel, etc. in out/target/product/generic_arm64/
@@ -293,7 +293,7 @@ zip vine-rom-7.vrom manifest.json
 
 ## CI/CD
 
-VineOS uses GitHub Actions, defined in `.github/workflows/`.
+YpsilonOS uses GitHub Actions, defined in `.github/workflows/`.
 
 | Workflow | Trigger | What it does |
 |---|---|---|

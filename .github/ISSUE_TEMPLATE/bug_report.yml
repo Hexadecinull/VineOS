@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a bug or unexpected behavior in VineOS
+description: Report a bug or unexpected behavior in YpsilonOS Android
 title: "[Bug]: "
 labels: ["bug", "needs-triage"]
 assignees: []
@@ -15,7 +15,7 @@ body:
   - type: input
     id: vineos-version
     attributes:
-      label: VineOS version
+      label: YpsilonOS version
       description: Found in Settings → About → Version
       placeholder: "e.g. 0.1.0-alpha"
     validations:
@@ -42,7 +42,7 @@ body:
     attributes:
       label: Host CPU ABI list
       description: |
-        Found in VineOS Settings → About → Host ABI.
+        Found in YpsilonOS Settings → About → Host ABI.
         Or run: `adb shell getprop ro.product.cpu.abilist`
       placeholder: "e.g. arm64-v8a  OR  arm64-v8a,armeabi-v7a,armeabi"
     validations:
@@ -68,7 +68,7 @@ body:
     attributes:
       label: Steps to reproduce
       placeholder: |
-        1. Open VineOS
+        1. Open YpsilonOS
         2. Tap 'New Instance'
         3. Select ROM...
         4. See error

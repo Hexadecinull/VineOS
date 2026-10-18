@@ -1,6 +1,6 @@
-# Hosting your own VineOS ROM store
+# Hosting your own YpsilonOS ROM store
 
-VineOS fetches its ROM list from a single JSON file (the "manifest"),
+YpsilonOS fetches its ROM list from a single JSON file (the "manifest"),
 then downloads and verifies individual `.vrom` files from URLs listed
 in that manifest. There's no special server software involved, any
 plain static file host works. This guide covers a Debian box running
@@ -46,7 +46,7 @@ handy for you to `sha256sum -c` against before publishing.
 ## 3. The store manifest format
 
 This is parsed directly into the app's `ROMManifest`/`ROMImage` Kotlin
-classes (`app/src/main/java/com/hexadecinull/vineos/data/models/Models.kt`),
+classes (`app/src/main/java/com/ypsilonos/vineos/data/models/Models.kt`),
 field-for-field, no renaming:
 
 ```json
@@ -59,7 +59,7 @@ field-for-field, no renaming:
       "androidVersion": "7.1.2",
       "apiLevel": 25,
       "description": "Stock AOSP 7.1.2, arm64-v8a with 32-bit compat",
-      "downloadUrl": "https://vineos.hexadecinull.dpdns.org/roms/android-7.1.2-arm64.vrom",
+      "downloadUrl": "https://ypsilonos.dpdns.org/roms/android-7.1.2-arm64.vrom",
       "sha256": "<sha256 of the WHOLE .vrom file, see section 4>",
       "sizeBytes": 734003200,
       "minHostApiLevel": 26,
@@ -128,7 +128,7 @@ sudo cp website/index.html /var/www/vineos-site/index.html
 sudo cp path/to/*.vrom /var/www/vineos-roms/roms/
 python3 scripts/generate_manifest.py \
     --roms-dir /var/www/vineos-roms/roms \
-    --base-url https://vineos.hexadecinull.dpdns.org/roms \
+    --base-url https://ypsilonos.dpdns.org/roms \
     --output /var/www/vineos-roms/manifest.json
 
 sudo chown -R www-data:www-data /var/www/vineos-site /var/www/vineos-roms
@@ -142,7 +142,7 @@ then this config, adjust paths if you used different ones above:
 ```nginx
 server {
     listen 80;
-    server_name vineos.hexadecinull.dpdns.org;
+    server_name ypsilonos.dpdns.org;
 
     root /var/www/vineos-site;
     index index.html;
@@ -206,7 +206,7 @@ sudo apt-get update && sudo apt-get install cloudflared
 
 cloudflared tunnel login
 cloudflared tunnel create vineos
-cloudflared tunnel route dns vineos vineos.hexadecinull.dpdns.org
+cloudflared tunnel route dns vineos ypsilonos.dpdns.org
 ```
 
 That last command creates the DNS record in your Cloudflare dashboard
@@ -220,7 +220,7 @@ sudo tee /etc/cloudflared/config.yml << 'EOF'
 tunnel: vineos
 credentials-file: /root/.cloudflared/<TUNNEL-ID>.json
 ingress:
-  - hostname: vineos.hexadecinull.dpdns.org
+  - hostname: ypsilonos.dpdns.org
     service: http://localhost:80
   - service: http_status:404
 EOF
@@ -243,12 +243,12 @@ letting Cloudflare proxy it, but Tunnel is the better fit for a home
 server with no static IP or open ports, which sounds like your setup.
 
 **Path B: direct exposure with certbot** — needs port 80/443 forwarded
-to the box and a stable way for `vineos.hexadecinull.dpdns.org` to
+to the box and a stable way for `ypsilonos.dpdns.org` to
 resolve to its public IP. Only relevant if you move away from
 Cloudflare Tunnel later:
 ```bash
 sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d vineos.hexadecinull.dpdns.org
+sudo certbot --nginx -d ypsilonos.dpdns.org
 ```
 certbot rewrites the nginx config in place to add the `443 ssl` block
 and a `80 → 443` redirect automatically, you don't need to hand-write
@@ -258,7 +258,7 @@ that part.
 
 `ROMRepository.kt` already hardcodes your domain:
 ```kotlin
-private const val MANIFEST_URL = "https://vineos.hexadecinull.dpdns.org/roms/manifest.json"
+private const val MANIFEST_URL = "https://ypsilonos.dpdns.org/roms/manifest.json"
 ```
 Nothing to change here unless the domain itself changes later, in
 which case that's the one line to update.
@@ -274,7 +274,7 @@ the app actually verifies, and writes out a ready-to-serve
 ```bash
 python3 scripts/generate_manifest.py \
     --roms-dir /var/www/vineos-roms/roms \
-    --base-url https://vineos.hexadecinull.dpdns.org/roms \
+    --base-url https://ypsilonos.dpdns.org/roms \
     --output /var/www/vineos-roms/manifest.json
 ```
 
@@ -286,7 +286,7 @@ the real file.
 ## 8. Testing before you point real users at it
 
 ```bash
-curl -s https://vineos.hexadecinull.dpdns.org/manifest.json | python3 -m json.tool
+curl -s https://ypsilonos.dpdns.org/manifest.json | python3 -m json.tool
 ```
 confirms the manifest itself is valid JSON and reachable. Beyond that,
 build a debug APK pointed at your `MANIFEST_URL`, and check the ROMs
@@ -304,7 +304,7 @@ are in).
 domain proxied through Cloudflare (the orange-cloud DNS record
 `cloudflared tunnel route dns` created), the TLS connection the app
 actually makes terminates at **Cloudflare's edge**, not your origin
-box. Running the command below against `vineos.hexadecinull.dpdns.org`
+box. Running the command below against `ypsilonos.dpdns.org`
 correctly captures whatever the app really sees, that part still
 works, but it means you're pinning Cloudflare's certificate, not one
 you personally control the renewal of. Cloudflare rotates their edge
@@ -322,7 +322,7 @@ order of years, not Cloudflare's routine leaf rotation.
 Generate the primary pin:
 
 ```bash
-openssl s_client -connect vineos.hexadecinull.dpdns.org:443 -servername vineos.hexadecinull.dpdns.org </dev/null 2>/dev/null \
+openssl s_client -connect ypsilonos.dpdns.org:443 -servername ypsilonos.dpdns.org </dev/null 2>/dev/null \
   | openssl x509 -pubkey -noout \
   | openssl pkey -pubin -outform der \
   | openssl dgst -sha256 -binary \

@@ -1,6 +1,6 @@
-# Contributing to VineOS
+# Contributing to YpsilonOS
 
-Thank you for considering a contribution. VineOS is a community-driven
+Thank you for considering a contribution. YpsilonOS is a community-driven
 project and every contribution, big or small, matters.
 
 ## Table of Contents
@@ -29,7 +29,7 @@ Harassment, gatekeeping, and bad-faith criticism will not be tolerated. See
 
 You don't need to write code to contribute:
 
-- **Report bugs**: open a [GitHub Issue](https://github.com/Hexadecinull/VineOS/issues) with as much detail as possible
+- **Report bugs**: open a [GitHub Issue](https://github.com/Hexadecinull/YpsilonOS/issues) with as much detail as possible
 - **Test on your device**, especially useful if you own an arm64-only device or a less common host ABI like x86_64
 - **Improve documentation**: fix typos, add examples, clarify confusing sections in any file under [`docs/`](README.md)
 - **Build ROM images**: the project currently has no bootable ROM; this is the single biggest blocker
@@ -51,14 +51,14 @@ See [BUILDING.md](BUILDING.md) for the full environment setup. Short version:
 
 - Android Studio 2025.3+ (needed for AGP 9.2 / API 37 support)
 - NDK r27+, CMake 3.22+, JDK 17 (bundled with Android Studio)
-- A device or emulator for testing; VineOS now builds for `arm64-v8a`,
+- A device or emulator for testing; YpsilonOS now builds for `arm64-v8a`,
   `armeabi-v7a`, `x86_64`, and `x86` hosts, so a wider range of hardware
   works than before
 
 ## Project structure
 
 ```
-VineOS/
+YpsilonOS/
 ├── app/
 │   ├── build.gradle.kts             App-level build config
 │   ├── proguard-rules.pro           R8/ProGuard rules for release builds
@@ -66,9 +66,9 @@ VineOS/
 │   └── src/
 │       ├── main/
 │       │   ├── AndroidManifest.xml
-│       │   ├── java/com/hexadecinull/vineos/
+│       │   ├── java/com/ypsilonos/vineos/
 │       │   │   ├── MainActivity.kt      Compose host + NavHost
-│       │   │   ├── VineApplication.kt   Hilt app class
+│       │   │   ├── YpsilonApplication.kt   Hilt app class
 │       │   │   ├── ui/                  All Compose UI
 │       │   │   │   ├── theme/           Material You theming
 │       │   │   │   ├── navigation/      Screen definitions + nav graph
@@ -76,16 +76,16 @@ VineOS/
 │       │   │   │   └── components/      Reusable composables (InstanceCard, etc.)
 │       │   │   ├── data/
 │       │   │   │   ├── models/          VMInstance, ROMImage, AbiCompat, ...
-│       │   │   │   └── repository/      InstanceRepository, ROMRepository, VineDatabase
+│       │   │   │   └── repository/      InstanceRepository, ROMRepository, YpsilonDatabase
 │       │   │   ├── domain/
-│       │   │   │   └── VineVMManager.kt VM lifecycle orchestrator
+│       │   │   │   └── YpsilonVMManager.kt VM lifecycle orchestrator
 │       │   │   ├── service/
-│       │   │   │   └── VineService.kt   Foreground service
+│       │   │   │   └── YpsilonService.kt   Foreground service
 │       │   │   └── native/
-│       │   │       └── VineRuntime.kt   JNI bridge
+│       │   │       └── YpsilonRuntime.kt   JNI bridge
 │       │   └── cpp/                     C++17 native runtime
 │       │       ├── CMakeLists.txt
-│       │       ├── vine_runtime.cpp     JNI entry points
+│       │       ├── ypsilon_runtime.cpp     JNI entry points
 │       │       ├── container/           Linux namespace container
 │       │       ├── qemu_bridge/         QEMU binary verification + binfmt_misc
 │       │       ├── display/             Guest framebuffer to Surface bridge
@@ -133,17 +133,17 @@ fun InstanceCard(
 
 - C++17 throughout, no older standards
 - Follow the [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html) with one exception: `snake_case` for functions and variables, not `CamelCase`
-- All code lives in the `vine` namespace (or sub-namespaces like `vine::qemu`)
-- Always check syscall return values and log errors with `VINE_LOGE_ERRNO()`
+- All code lives in the `vine` namespace (or sub-namespaces like `ypsilon::qemu`)
+- Always check syscall return values and log errors with `YPSILON_LOGE_ERRNO()`
 - No raw `new`/`delete`; use smart pointers
 - `std::string`/`std::vector`, not manual C-string allocation
-- No `printf`; use the `VINE_LOG*` macros, which route to `__android_log_print`
+- No `printf`; use the `YPSILON_LOG*` macros, which route to `__android_log_print`
 - Same comment policy as Kotlin: single-line `//` only, short and genuinely useful
 
 ```cpp
 bool Container::setup_binfmt_misc() {
     if (config_.qemu_arm_path.empty()) {
-        VINE_LOGE("qemu_arm_path not set in config");
+        YPSILON_LOGE("qemu_arm_path not set in config");
         return false;
     }
     // ...
@@ -232,12 +232,12 @@ squash-merged into `dev`.
 
 Bug reports should include:
 
-- VineOS version (Settings → About)
+- YpsilonOS version (Settings → About)
 - Device model and Android version
 - Host CPU ABI list (Settings → About → Host ABI, or `adb shell getprop ro.product.cpu.abilist`)
 - Steps to reproduce, as specific as possible
 - Expected vs actual behavior
-- Logcat output: `adb logcat -s VineRuntime` during the issue, with the relevant section pasted in
+- Logcat output: `adb logcat -s YpsilonRuntime` during the issue, with the relevant section pasted in
 - ROM version, if the issue happens inside a running instance
 
 Feature requests should describe the use case, how you'd expect it to
@@ -254,10 +254,10 @@ for the full guide. Requirements for acceptance:
 - Minimal size: strip unnecessary system apps, keep only what's needed to boot and run user apps
 - Dual ABI: both `arm64-v8a` and `armeabi-v7a` libraries in `/system/lib` and `/system/lib64`
 - SHA-256 hash provided for integrity verification
-- A VineOS-specific `init.vine.rc` for VM setup
+- A YpsilonOS-specific `init.vine.rc` for VM setup
 - No Google Play Services in the base image; GApps are an optional layer the user installs
 
-ROM images are distributed via the VineOS CDN and contributed through a
+ROM images are distributed via the YpsilonOS CDN and contributed through a
 manifest PR, not uploaded to the git repo directly (they're large binaries).
 
 ## Security vulnerabilities

@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.VineOS.Base" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.YpsilonOS.Base" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">#FFF8F5EF</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowActionBar">false</item>
     </style>
 
     <!-- API 26: no cutout attribute, that needs API 27 -->
-    <style name="Theme.VineOS" parent="Theme.VineOS.Base" />
+    <style name="Theme.YpsilonOS" parent="Theme.YpsilonOS.Base" />
 
-    <style name="Theme.VineOS.Splash" parent="Theme.VineOS">
+    <style name="Theme.YpsilonOS.Splash" parent="Theme.YpsilonOS">
         <item name="android:windowBackground">#FF1A1C19</item>
     </style>
 </resources>
