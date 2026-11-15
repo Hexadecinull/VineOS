@@ -37,20 +37,24 @@ class ROMsViewModel @Inject constructor(private val romRepo: ROMRepository) : Vi
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(),
-        initialValue = ROMsUiState(),
+        initialValue = ROMsUiState(isLoading = false),
     )
 
     init {
-        fetchManifest()
+        if (ROMRepository.REMOTE_ROM_FEATURES_ENABLED) {
+            fetchManifest()
+        }
     }
 
     fun fetchManifest() {
+        if (!ROMRepository.REMOTE_ROM_FEATURES_ENABLED) return
         viewModelScope.launch {
             romRepo.fetchManifest()
         }
     }
 
     fun download(rom: ROMImage) {
+        if (!ROMRepository.REMOTE_ROM_FEATURES_ENABLED) return
         viewModelScope.launch {
             romRepo.download(rom, onProgress = {})
         }
