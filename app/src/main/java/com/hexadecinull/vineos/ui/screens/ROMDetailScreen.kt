@@ -21,6 +21,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hexadecinull.vineos.data.models.AbiCompat
 import com.hexadecinull.vineos.data.models.ROMDownloadState
+import com.hexadecinull.vineos.data.repository.ROMRepository
 import com.hexadecinull.vineos.ui.viewmodel.ROMDetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -115,7 +116,8 @@ fun ROMDetailScreen(
                         Text("Create Instance")
                     }
                 }
-                uiState.progress?.state == ROMDownloadState.DOWNLOADING -> {
+                ROMRepository.REMOTE_ROM_FEATURES_ENABLED &&
+                    uiState.progress?.state == ROMDownloadState.DOWNLOADING -> {
                     val pct = uiState.progress?.progressPercent ?: 0
                     LinearProgressIndicator(
                         progress = { (uiState.progress?.progressFraction ?: 0f) },
@@ -123,10 +125,14 @@ fun ROMDetailScreen(
                     )
                     Text("Downloading, $pct%", style = MaterialTheme.typography.labelSmall)
                 }
-                else -> Button(onClick = vm::download, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Download (${formatBytes(rom.sizeBytes)})")
+                else -> {
+                    if (ROMRepository.REMOTE_ROM_FEATURES_ENABLED) {
+                        Button(onClick = vm::download, modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Download (${formatBytes(rom.sizeBytes)})")
+                        }
+                    }
                 }
             }
         }
