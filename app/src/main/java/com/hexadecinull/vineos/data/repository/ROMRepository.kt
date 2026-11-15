@@ -37,6 +37,11 @@ class ROMRepository @Inject constructor(@ApplicationContext private val context:
     val downloadProgress: Flow<Map<String, DownloadProgress>> = _downloadProgress.asStateFlow()
 
     suspend fun fetchManifest(): Result<List<ROMImage>> = withContext(Dispatchers.IO) {
+        if (!REMOTE_ROM_FEATURES_ENABLED) {
+            _manifestRoms.value = emptyList()
+            return@withContext Result.success(emptyList())
+        }
+
         runCatching {
             val request = Request.Builder().url(MANIFEST_URL).build()
             val body = httpClient.newCall(request).execute().use { response ->
@@ -62,6 +67,12 @@ class ROMRepository @Inject constructor(@ApplicationContext private val context:
     }
 
     suspend fun download(rom: ROMImage, onProgress: (DownloadProgress) -> Unit): Result<File> = withContext(Dispatchers.IO) {
+        if (!REMOTE_ROM_FEATURES_ENABLED) {
+            return@withContext Result.failure(
+                IllegalStateException("Remote ROM downloads are currently disabled")
+            )
+        }
+
         runCatching {
             val dest = File(romsDir, "${rom.id}.vrom")
             updateProgress(rom.id, 0L, rom.sizeBytes, ROMDownloadState.DOWNLOADING)
@@ -220,7 +231,9 @@ class ROMRepository @Inject constructor(@ApplicationContext private val context:
     )
 
     companion object {
-        private const val MANIFEST_URL = "https://vineos.hexadecinull.dpdns.org/roms/manifest.json"
+        // Keep catalog and download code available, but disabled while AndroidVM uses local imports only.
+        const val REMOTE_ROM_FEATURES_ENABLED = false
+        private const val MANIFEST_URL = "https://androidvm-disabled.invalid/roms/manifest.json"
         private const val BUFFER_SIZE = 64 * 1024
     }
 }
