@@ -23,6 +23,7 @@ import com.hexadecinull.vineos.data.models.AbiCompat
 import com.hexadecinull.vineos.data.models.DownloadProgress
 import com.hexadecinull.vineos.data.models.ROMDownloadState
 import com.hexadecinull.vineos.data.models.ROMImage
+import com.hexadecinull.vineos.data.repository.ROMRepository
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,7 +58,7 @@ fun ROMsScreen(
                 title = { Text("ROMs") },
                 actions = {
                     IconButton(onClick = { pickRomLauncher.launch(arrayOf("*/*")) }) {
-                        Icon(Icons.Outlined.FileOpen, contentDescription = "Import a .vrom file from storage")
+                        Icon(Icons.Outlined.FileOpen, contentDescription = "Import a ROM file from storage")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -87,7 +88,7 @@ fun ROMsScreen(
         ) {
             item {
                 Text(
-                    text = "Available ROMs",
+                    text = "Imported ROMs",
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 4.dp)
@@ -195,14 +196,18 @@ private fun ROMCard(
                     }
                     progress?.state == ROMDownloadState.DOWNLOADING -> {}
                     else -> {
-                        FilledTonalIconButton(onClick = onDownload) {
-                            Icon(Icons.Filled.Download, contentDescription = "Download ${rom.displayName}")
+                        if (ROMRepository.REMOTE_ROM_FEATURES_ENABLED) {
+                            FilledTonalIconButton(onClick = onDownload) {
+                                Icon(Icons.Filled.Download, contentDescription = "Download ${rom.displayName}")
+                            }
                         }
                     }
                 }
             }
 
-            if (progress != null && progress.state == ROMDownloadState.DOWNLOADING) {
+            if (ROMRepository.REMOTE_ROM_FEATURES_ENABLED &&
+                progress != null && progress.state == ROMDownloadState.DOWNLOADING
+            ) {
                 Spacer(Modifier.height(10.dp))
                 Column {
                     Row(
@@ -326,13 +331,13 @@ private fun ROMsEmptyState(modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.height(20.dp))
         Text(
-            "No ROMs available",
+            "No ROMs imported yet",
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "Check your internet connection, or import a .vrom file from storage using the button above.",
+            "Import a .vrom ROM package from your device using the button above.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
