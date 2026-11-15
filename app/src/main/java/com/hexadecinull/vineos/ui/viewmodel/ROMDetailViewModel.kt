@@ -41,12 +41,13 @@ class ROMDetailViewModel @Inject constructor(private val romRepo: ROMRepository)
 
     fun load(id: String) {
         romIdFlow.value = id
-        if (romRepo.getRom(id) == null) {
+        if (ROMRepository.REMOTE_ROM_FEATURES_ENABLED && romRepo.getRom(id) == null) {
             viewModelScope.launch { romRepo.fetchManifest() }
         }
     }
 
     fun download() {
+        if (!ROMRepository.REMOTE_ROM_FEATURES_ENABLED) return
         val rom = romRepo.getRom(romIdFlow.value) ?: return
         viewModelScope.launch { romRepo.download(rom, onProgress = {}) }
     }
